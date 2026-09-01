@@ -1,0 +1,57 @@
+{
+  "general": {
+    "scan_interval_ms": 5000,
+    "daemon_mode": true,
+    "max_cpu_percent": 10.0,
+    "quarantine_path": "./quarantine",
+    "config_version": "1.0.0"
+  },
+  "monitoring": {
+    "watch_processes": true,
+    "watch_file_system": true,
+    "watch_network": true,
+    "watch_registry": false,
+    "monitored_dirs": ["/tmp", "/home", "C:\\Users"],
+    "ignored_dirs": ["/proc", "/sys", "C:\\Windows\\System32"],
+    "ignored_processes": ["coreedr", "systemd", "launchd"]
+  },
+  "detection": {
+    "enable_heuristic": true,
+    "enable_signature": true,
+    "enable_behavioral": true,
+    "entropy_threshold": 7.5,
+    "suspicious_api_threshold": 5,
+    "max_process_chain_depth": 10,
+    "yara_rules_path": "./rules"
+  },
+  "response": {
+    "auto_kill_malicious": true,
+    "auto_quarantine": true,
+    "alert_on_critical": true,
+    "alert_command": null,
+    "cooldown_seconds": 30
+  },
+  "logging": {
+    "log_path": "./logs/coreedr.log",
+    "log_level": "info",
+    "max_log_size_mb": 100,
+    "retention_days": 30,
+    "json_format": true
+  },
+  "rules": {
+    "rules_dir": "./rules",
+    "custom_signatures": [],
+    "blacklisted_hashes": [
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    ],
+    "blacklisted_names": [
+      "mimikatz", "lazagne", "bloodhound", "cobaltstrike",
+      "meterpreter", "empire", "covenant", "sliver", "havoc"
+    ],
+    "whitelisted_hashes": [],
+    "whitelisted_names": [
+      "svchost.exe", "csrss.exe", "lsass.exe", "explorer.exe",
+      "kernel_task", "launchd", "systemd", "bash", "coreedr"
+    ]
+  }
+}
