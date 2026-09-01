@@ -38,7 +38,7 @@ impl ProcessMonitor {
         }
     }
 
-    pub fn scan_processes(&mut self) -> Result<ProcessDelta, Box<dyn std::error::Error>> {
+    pub fn scan_processes(&mut self) -> Result<ProcessDelta, crate::error::CoreError> {
         let current = self.get_all_processes()?;
         let mut delta = ProcessDelta {
             new_processes: Vec::new(),
@@ -70,7 +70,7 @@ impl ProcessMonitor {
         Ok(delta)
     }
 
-    fn get_all_processes(&self) -> Result<HashMap<u32, ProcessInfo>, Box<dyn std::error::Error>> {
+    fn get_all_processes(&self) -> Result<HashMap<u32, ProcessInfo>, crate::error::CoreError> {
         let mut processes = HashMap::new();
 
         #[cfg(target_os = "windows")]
@@ -92,7 +92,7 @@ impl ProcessMonitor {
     }
 
     #[cfg(target_os = "windows")]
-    fn get_windows_processes(&self) -> Result<HashMap<u32, ProcessInfo>, Box<dyn std::error::Error>> {
+    fn get_windows_processes(&self) -> Result<HashMap<u32, ProcessInfo>, crate::error::CoreError> {
         let output = Command::new("wmic")
             .args([
                 "process",
@@ -139,7 +139,7 @@ impl ProcessMonitor {
     }
 
     #[cfg(target_os = "linux")]
-    fn get_linux_processes(&self) -> Result<HashMap<u32, ProcessInfo>, Box<dyn std::error::Error>> {
+    fn get_linux_processes(&self) -> Result<HashMap<u32, ProcessInfo>, crate::error::CoreError> {
         let output = Command::new("ps")
             .args(["-eo", "pid,ppid,user,%cpu,rss,comm", "--no-headers"])
             .output()?;
@@ -183,7 +183,7 @@ impl ProcessMonitor {
     }
 
     #[cfg(target_os = "macos")]
-    fn get_macos_processes(&self) -> Result<HashMap<u32, ProcessInfo>, Box<dyn std::error::Error>> {
+    fn get_macos_processes(&self) -> Result<HashMap<u32, ProcessInfo>, crate::error::CoreError> {
         let output = Command::new("ps")
             .args(["-eo", "pid,ppid,user,%cpu,rss,comm", "-x"])
             .output()?;

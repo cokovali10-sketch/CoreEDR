@@ -20,7 +20,7 @@ impl HashEngine {
         Self { entropy_threshold }
     }
 
-    pub fn hash_file(&self, path: &Path) -> Result<HashResult, Box<dyn std::error::Error>> {
+    pub fn hash_file(&self, path: &Path) -> Result<HashResult, crate::error::CoreError> {
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
         let mut hasher = Sha256::new();
@@ -47,7 +47,7 @@ impl HashEngine {
         })
     }
 
-    pub fn calculate_file_entropy(&self, path: &Path) -> Result<f64, Box<dyn std::error::Error>> {
+    pub fn calculate_file_entropy(&self, path: &Path) -> Result<f64, crate::error::CoreError> {
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
         let mut buffer = [0u8; 65536];
@@ -94,7 +94,7 @@ impl HashEngine {
         whitelist.iter().any(|h| h.eq_ignore_ascii_case(hash))
     }
 
-    pub fn quick_hash(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn quick_hash(path: &Path) -> Result<String, crate::error::CoreError> {
         let mut file = File::open(path)?;
         let mut hasher = Sha256::new();
         let mut buffer = [0u8; 8192];

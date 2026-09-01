@@ -13,7 +13,7 @@ pub struct ThreatIndicator {
     pub process_pid: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Eq, Ord)]
 pub enum Severity {
     Info,
     Low,

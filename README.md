@@ -1,131 +1,180 @@
 # CoreEDR
 
-Lightweight Endpoint Detection and Response (EDR) / Antivirus engine written in Rust.
+**Production-grade Endpoint Detection and Response (EDR) / Antivirus Engine**
 
-**Version:** 0.1.0 | **Language:** Rust | **License:** MIT
+A lightweight, high-performance EDR solution written in Rust with real-time process monitoring, heuristic analysis, YARA rule integration, ML-based threat classification, and automated threat containment.
 
 ## Features
 
-### Real-Time Process Monitoring
-- Continuous scanning of running processes
-- Process chain analysis (parent-child relationships)
-- Memory and CPU usage anomaly detection
-- New/terminated/modified process tracking
+### Core Detection
+- **Real-time Process Monitoring** — Native OS API integration (no shell commands)
+- **Heuristic Analysis** — 6-vector risk scoring with composite severity assessment
+- **Rule Engine** — JSON-defined custom rules with blacklist/whitelist support
+- **Signature Detection** — YARA rule compilation and scanning
 
-### Heuristic Analysis Engine
-- **Name-based detection** — matches against known malware names
-- **Memory anomaly detection** — detects unusual memory consumption
-- **CPU spike detection** — identifies resource-intensive suspicious processes
-- **Command-line analysis** — detects suspicious command patterns (PowerShell encoded, certutil, etc.)
-- **Hidden process detection** — identifies process hollowing attempts
-- **Entropy analysis** — flags high-entropy (packed/encrypted) executables
+### Advanced Detection
+- **Behavioral Analysis** — Multi-signal event correlation (process chains, file + network combos)
+- **ML Classification** — Lightweight logistic regression model for threat scoring
+- **Network Monitoring** — Connection tracking, suspicious port detection, C2 beacon detection
+- **File System Monitoring** — Real-time file change detection with platform-native watchers
 
-### Signature-Based Detection
-- Blacklist/whitelist by hash (SHA-256)
-- Blacklist/whitelist by process name
-- Custom rule engine with JSON-defined rules
-- Pattern matching with regex support
+### Response & Containment
+- **Automated Kill** — Terminate malicious processes via native APIs
+- **Encrypted Quarantine** — AES-256-GCM encryption with Argon2id key derivation
+- **Alert Management** — Deduplication, cooldown, acknowledgment, severity filtering
+- **Tamper Protection** — Self-integrity checks, anti-kill, watchdog, elevation detection
 
-### Threat Containment
-- **Auto-kill** — terminates malicious processes (SIGKILL/TaskKill)
-- **Quarantine** — isolates suspicious processes with full audit trail
-- **Alerting** — generates alerts for medium/high/critical threats
-- **Cooldown** — prevents duplicate actions on the same process
+### Management
+- **REST API** — Full HTTP API for management, queries, and control (Axum)
+- **Web UI Dashboard** — Real-time monitoring dashboard with WebSocket updates
+- **CLI Interface** — `clap`-based CLI with daemon, scan, status, quarantine commands
+- **Auto-Update** — Automatic rule and model updates from remote sources
 
-### Logging & Alerts
-- Structured JSON logging with timestamps
-- Severity levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
-- Event categories: PROCESS, FILE, NETWORK, HEURISTIC, SIGNATURE, CONTAINMENT
-- Alert deduplication and cooldown
-- Alert acknowledgment system
+## Architecture
 
-### Rule Engine
-- JSON-based custom rules
-- Built-in rules for common attack patterns
-- Rule conditions: NameContains, HashEquals, CommandLineContains, MemoryAbove, Combined
-- Enable/disable rules dynamically
+```
+┌─────────────────────────────────────────────────────────┐
+│                    CoreEDR Engine                        │
+├──────────┬──────────┬──────────┬──────────┬─────────────┤
+│ Process  │  File    │ Network  │  YARA    │ Behavioral  │
+│ Monitor  │ Monitor  │ Monitor  │ Scanner  │  Analyzer   │
+├──────────┴──────────┴──────────┴──────────┴─────────────┤
+│              Heuristic Engine + Rule Engine              │
+├─────────────────────────────────────────────────────────┤
+│            ML Threat Classifier (Logistic Reg)          │
+├─────────────────────────────────────────────────────────┤
+│         Containment Engine + Alert Manager               │
+├─────────────────────────────────────────────────────────┤
+│    Encrypted Quarantine (AES-256-GCM) + Logger          │
+├─────────────────────────────────────────────────────────┤
+│         Tamper Guard + Integrity Checker                 │
+├─────────────────────────────────────────────────────────┤
+│     REST API (Axum) + Web UI + WebSocket                 │
+└─────────────────────────────────────────────────────────┘
+```
 
-## Build & Run
+## Installation
+
+### Prerequisites
+- Rust 1.70+ (install via [rustup](https://rustup.rs/))
+
+### Build
 
 ```bash
-# Build release
+# Full build with all features
 cargo build --release
 
-# Run single scan
-./target/release/coreedr scan
+# Minimal build (core features only)
+cargo build --release --no-default-features
 
-# Run daemon (continuous monitoring)
-./target/release/coreedr daemon
+# Build with specific features
+cargo build --release --features "api,yara,ml"
+```
 
+### Install
+
+```bash
+cargo install --path .
+```
+
+## Usage
+
+### CLI Commands
+
+```bash
+# Run in daemon mode (continuous monitoring)
+coreedr daemon
+
+# Run a single scan
+coreedr scan
+
+# Show current status
+coreedr status
+
+# Generate default configuration
+coreedr config > config.json
+
+# List quarantined items
+coreedr quarantine
+
+# Start REST API server with Web UI
+coreedr server --port 8080
+```
+
+### Configuration
+
+```bash
 # Generate default config
-./target/release/coreedr config > config.json
+coreedr config > config.json
 
-# View quarantined items
-./target/release/coreedr quarantine
+# Edit config
+vim config.json
+
+# Run with custom config
+coreedr daemon --config /path/to/config.json
 ```
 
-## CLI Commands
+### REST API
 
-| Command | Description |
-|---------|-------------|
-| `daemon` | Start continuous monitoring |
-| `scan` | Run single scan |
-| `status` | Show current status |
-| `config` | Generate default configuration |
-| `quarantine` | List quarantined items |
-| `help` | Show help |
+```bash
+# Health check
+curl http://localhost:8080/api/health
 
-## Configuration
+# System status
+curl http://localhost:8080/api/system/status
 
-Edit `config.json` to customize:
+# Start a scan
+curl -X POST http://localhost:8080/api/scan
 
-```json
-{
-  "general": {
-    "scan_interval_ms": 5000,
-    "quarantine_path": "./quarantine"
-  },
-  "detection": {
-    "enable_heuristic": true,
-    "enable_signature": true,
-    "entropy_threshold": 7.5
-  },
-  "response": {
-    "auto_kill_malicious": true,
-    "auto_quarantine": true,
-    "cooldown_seconds": 30
-  }
-}
+# List quarantine entries
+curl http://localhost:8080/api/quarantine
+
+# List alerts
+curl http://localhost:8080/api/alerts
 ```
 
-## Detection Rules
+### Web UI
 
-### Built-in Rules
-| Rule | Severity | Description |
-|------|----------|-------------|
-| `mimikatz_detected` | Critical | Mimikatz credential dumping tool |
-| `suspicious_encoded_ps` | High | PowerShell with encoded command |
-| `high_entropy_process` | High | Process with >100MB memory |
+Open `http://localhost:8080` in your browser after starting the server.
 
-### Custom Rules
+## Feature Flags
 
-Create a JSON file with rules:
+| Feature | Description | Default |
+|---------|-------------|---------|
+| `api` | REST API server (Axum) | ✓ |
+| `yara` | YARA rule integration | ✓ |
+| `ml` | ML threat classification | ✓ |
+| `quarantine-encrypt` | AES-256-GCM quarantine encryption | ✓ |
+| `file-monitoring` | Real-time file system monitoring | ✓ |
+| `network-monitoring` | Network connection monitoring | ✓ |
+| `behavioral-analysis` | Behavioral analysis engine | ✓ |
+| `config-watch` | Configuration hot-reload | ✓ |
+| `auto-update` | Automatic rule/model updates | ✓ |
+| `web-ui` | Embedded web dashboard | ✓ |
+| `service` | Windows Service integration | ✓ |
 
-```json
-[
-  {
-    "name": "my_custom_rule",
-    "description": "Detects suspicious activity",
-    "severity": "High",
-    "condition": {
-      "Combined": [
-        {"CommandLineContains": "powershell"},
-        {"CommandLineContains": "-enc"}
-      ]
-    },
-    "enabled": true
-  }
-]
+## Platform Support
+
+| Platform | Process Monitoring | Service Mode | File Monitoring | Network Monitoring |
+|----------|-------------------|--------------|-----------------|-------------------|
+| Windows  | Native APIs | Windows Service | ReadDirectoryChangesW | GetExtendedTcpTable |
+| Linux    | /proc filesystem | systemd | inotify | /proc/net/* |
+| macOS    | /proc + sysctl | launchd | FSEvents | sysctl |
+
+## Testing
+
+```bash
+# Run all tests
+cargo test
+
+# Run with output
+cargo test -- --nocapture
+
+# Run specific test
+cargo test test_scanner_creation
+
+# Run integration tests
+cargo test --test integration
 ```
 
 ## Project Structure
@@ -135,43 +184,47 @@ CoreEDR/
 ├── src/
 │   ├── main.rs              # CLI entry point
 │   ├── lib.rs               # Module declarations
+│   ├── error.rs             # Centralized error types
+│   ├── logging.rs           # Tracing-based logging
 │   ├── config.rs            # Configuration management
-│   ├── process_monitor.rs   # Real-time process scanning
-│   ├── hash_engine.rs       # SHA-256 hashing & entropy
+│   ├── scanner.rs           # Central scan orchestrator
+│   ├── process_monitor.rs   # OS process enumeration
 │   ├── heuristic_engine.rs  # Anomaly detection
-│   ├── rule_engine.rs       # Signature-based rules
-│   ├── logger.rs            # Security event logging
+│   ├── rule_engine.rs       # Signature-based detection
+│   ├── hash_engine.rs       # SHA-256 hashing + entropy
 │   ├── alert.rs             # Alert management
 │   ├── containment.rs       # Threat response
-│   └── quarantine.rs        # Quarantine management
-├── config.json              # Default configuration
-├── Cargo.toml               # Rust dependencies
+│   ├── quarantine/          # Encrypted quarantine
+│   │   ├── mod.rs
+│   │   ├── encryption.rs    # AES-256-GCM
+│   │   ├── store.rs         # JSON index
+│   │   ├── restore.rs       # File restoration
+│   │   └── cleanup.rs       # Retention cleanup
+│   ├── logger.rs            # Security event logging
+│   ├── platform/            # Native OS APIs
+│   │   ├── windows/
+│   │   ├── linux/
+│   │   └── macos/
+│   ├── monitoring/          # File system monitoring
+│   ├── network/             # Network monitoring
+│   ├── yara/                # YARA integration
+│   ├── behavioral/          # Behavioral analysis
+│   ├── ml/                  # ML classification
+│   ├── tamper/              # Tamper protection
+│   ├── api/                 # REST API
+│   │   ├── routes/
+│   │   └── middleware/
+│   └── updater/             # Auto-update
+├── ui/                      # Web dashboard
+│   ├── index.html
+│   ├── css/
+│   └── js/
+├── tests/                   # Integration tests
+├── docs/                    # Documentation
+├── Cargo.toml
 └── README.md
 ```
 
-## Testing
-
-```bash
-cargo test
-```
-
-Runs 20+ unit tests covering:
-- Hash computation and verification
-- Process monitoring
-- Heuristic analysis
-- Rule engine
-- Alert management
-- Quarantine operations
-- Logger functionality
-
-## Security Notes
-
-- **Read-only by default** — CoreEDR only monitors, does not modify system state unless configured
-- **Cooldown protection** — prevents rapid repeated actions on the same process
-- **Whitelist support** — protect system processes from accidental termination
-- **Audit trail** — all actions are logged with full context
-- **Quarantine** — suspicious items are isolated, not deleted
-
 ## License
 
-MIT
+MIT License - Hermes Studio

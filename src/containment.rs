@@ -264,13 +264,13 @@ impl ContainmentEngine {
         list
     }
 
-    pub fn restore_from_quarantine(&self, filename: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn restore_from_quarantine(&self, filename: &str) -> Result<(), crate::error::CoreError> {
         let path = self.quarantine_path.join(filename);
         if path.exists() {
             std::fs::remove_file(&path)?;
             Ok(())
         } else {
-            Err("Quarantine entry not found".into())
+            Err(crate::error::CoreError::NotFound(format!("Quarantine entry not found: {}", filename)))
         }
     }
 }

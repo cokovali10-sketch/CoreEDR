@@ -1,10 +1,10 @@
 use crate::config::Config;
-use crate::process_monitor::{ProcessMonitor, ProcessDelta};
-use crate::heuristic_engine::{HeuristicEngine, AnalysisResult, Action};
+use crate::containment::{ContainmentAction, ContainmentEngine};
+use crate::error::{CoreError, Result};
+use crate::heuristic_engine::{Action, HeuristicEngine};
 use crate::hash_engine::HashEngine;
-use crate::containment::{ContainmentEngine, ContainmentAction};
-use crate::alert::AlertManager;
-use crate::logger::{SecurityLogger, EventCategory};
+use crate::logger::{EventCategory, SecurityLogger};
+use crate::process_monitor::{ProcessDelta, ProcessMonitor};
 use crate::rule_engine::RuleEngine;
 
 pub struct Scanner {
@@ -13,7 +13,7 @@ pub struct Scanner {
     heuristic_engine: HeuristicEngine,
     hash_engine: HashEngine,
     containment_engine: ContainmentEngine,
-    alert_manager: AlertManager,
+    alert_manager: crate::alert::AlertManager,
     rule_engine: RuleEngine,
     logger: SecurityLogger,
     scan_count: u64,
@@ -22,11 +22,9 @@ pub struct Scanner {
 }
 
 impl Scanner {
-    pub fn new(config: Config) -> Result<Self, Box<dyn std::error::Error>> {
-        let logger = SecurityLogger::new(
-            &config.logging.log_path,
-            config.logging.json_format,
-        )?;
+    pub fn new(config: Config) -> Result<Self> {
+        let logger = SecurityLogger::new(&config.logging.log_path, config.logging.json_format)
+            .map_err(|e| CoreError::Logger(e.to_string()))?;
 
         logger.info(EventCategory::System, "scanner", "CoreEDR Scanner initializing");
 
@@ -39,8 +37,9 @@ impl Scanner {
             config.response.auto_quarantine,
             config.response.cooldown_seconds,
         );
-        let alert_manager = AlertManager::new(1000, config.response.cooldown_seconds);
-        let rule_engine = RuleEngine::new(&config.rules)?;
+        let alert_manager = crate::alert::AlertManager::new(1000, config.response.cooldown_seconds);
+        let rule_engine = RuleEngine::new(&config.rules)
+            .map_err(|e| CoreError::RuleEngine(e.to_string()))?;
 
         logger.info(EventCategory::System, "scanner", "CoreEDR Scanner initialized");
 
@@ -59,7 +58,7 @@ impl Scanner {
         })
     }
 
-    pub fn run_scan(&mut self) -> Result<ScanReport, Box<dyn std::error::Error>> {
+    pub fn run_scan(&mut self) -> Result<ScanReport> {
         let start = std::time::Instant::now();
         self.scan_count += 1;
 
@@ -69,7 +68,8 @@ impl Scanner {
             &format!("Starting scan #{}", self.scan_count),
         );
 
-        let delta = self.process_monitor.scan_processes()?;
+        let delta = self.process_monitor.scan_processes()
+            .map_err(|e| CoreError::ProcessMonitor(e.to_string()))?;
 
         self.logger.info(
             EventCategory::ProcessMonitor,
@@ -156,7 +156,7 @@ impl Scanner {
             "scanner",
             &format!(
                 "Scan #{} complete: {} threats detected, {} contained, {}ms",
-                self.scan_number, report.threats_detected, report.threats_contained, elapsed
+                self.scan_count, report.threats_detected, report.threats_contained, elapsed
             ),
         );
 
@@ -164,7 +164,10 @@ impl Scanner {
     }
 
     fn is_process_ignored(&self, name: &str) -> bool {
-        self.config.monitoring.ignored_processes.iter()
+        self.config
+            .monitoring
+            .ignored_processes
+            .iter()
             .any(|ignored| ignored.eq_ignore_ascii_case(name))
     }
 
@@ -176,7 +179,7 @@ impl Scanner {
         }
     }
 
-    pub fn run_daemon(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn run_daemon(&mut self) -> Result<()> {
         self.logger.info(
             EventCategory::System,
             "scanner",

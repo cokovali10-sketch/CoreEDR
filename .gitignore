@@ -1,5 +1,10 @@
-target/
+/target
 Cargo.lock
-quarantine/
-logs/
+/quarantine
+/logs
+/rules/compiled
+/models
 *.log
+*.tmp
+.DS_Store
+Thumbs.db

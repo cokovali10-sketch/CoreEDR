@@ -1,3 +1,8 @@
+pub mod cleanup;
+pub mod encryption;
+pub mod restore;
+pub mod store;
+
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -8,14 +13,17 @@ pub struct QuarantineEntry {
     pub pid: u32,
     pub hash: Option<String>,
     pub path: Option<String>,
+    pub quarantine_path: Option<String>,
     pub quarantine_time: chrono::DateTime<chrono::Utc>,
     pub reason: String,
     pub risk_score: u32,
     pub status: QuarantineStatus,
     pub notes: Option<String>,
+    pub original_size: Option<u64>,
+    pub encrypted: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum QuarantineStatus {
     Pending,
     Reviewed,
@@ -33,7 +41,7 @@ impl QuarantineManager {
         Self { quarantine_path }
     }
 
-    pub fn add_entry(&self, entry: QuarantineEntry) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn add_entry(&self, entry: QuarantineEntry) -> crate::error::Result<()> {
         let filename = format!("{}.json", entry.id);
         let path = self.quarantine_path.join(&filename);
         let json = serde_json::to_string_pretty(&entry)?;
@@ -41,7 +49,7 @@ impl QuarantineManager {
         Ok(())
     }
 
-    pub fn get_entry(&self, id: &str) -> Result<Option<QuarantineEntry>, Box<dyn std::error::Error>> {
+    pub fn get_entry(&self, id: &str) -> crate::error::Result<Option<QuarantineEntry>> {
         let filename = format!("{}.json", id);
         let path = self.quarantine_path.join(&filename);
 
@@ -79,7 +87,7 @@ impl QuarantineManager {
         id: &str,
         status: QuarantineStatus,
         notes: Option<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::error::Result<()> {
         if let Some(mut entry) = self.get_entry(id)? {
             entry.status = status;
             if let Some(n) = notes {
@@ -94,12 +102,19 @@ impl QuarantineManager {
         Ok(())
     }
 
-    pub fn delete_entry(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn delete_entry(&self, id: &str) -> crate::error::Result<()> {
         let filename = format!("{}.json", id);
         let path = self.quarantine_path.join(&filename);
         if path.exists() {
             std::fs::remove_file(&path)?;
         }
+
+        let data_filename = format!("{}.dat", id);
+        let data_path = self.quarantine_path.join(&data_filename);
+        if data_path.exists() {
+            std::fs::remove_file(&data_path)?;
+        }
+
         Ok(())
     }
 
@@ -119,21 +134,6 @@ impl QuarantineManager {
 
         stats
     }
-
-    pub fn cleanup_old_entries(&self, max_age_days: u32) -> Result<u32, Box<dyn std::error::Error>> {
-        let entries = self.list_entries();
-        let cutoff = chrono::Utc::now() - chrono::Duration::days(max_age_days as i64);
-        let mut removed = 0;
-
-        for entry in entries {
-            if entry.quarantine_time < cutoff && matches!(entry.status, QuarantineStatus::Deleted) {
-                self.delete_entry(&entry.id)?;
-                removed += 1;
-            }
-        }
-
-        Ok(removed)
-    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -143,86 +143,4 @@ pub struct QuarantineStats {
     pub reviewed: u32,
     pub restored: u32,
     pub deleted: u32,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::env;
-
-    fn make_test_entry(id: &str) -> QuarantineEntry {
-        QuarantineEntry {
-            id: id.to_string(),
-            process_name: "test.exe".to_string(),
-            pid: 1234,
-            hash: Some("abc123".to_string()),
-            path: Some("/tmp/test.exe".to_string()),
-            quarantine_time: chrono::Utc::now(),
-            reason: "Test quarantine".to_string(),
-            risk_score: 80,
-            status: QuarantineStatus::Pending,
-            notes: None,
-        }
-    }
-
-    #[test]
-    fn test_quarantine_add_list() {
-        let tmp = env::temp_dir().join("test_quarantine_mgr");
-        let manager = QuarantineManager::new(tmp.clone());
-
-        let entry = make_test_entry("test-001");
-        manager.add_entry(entry).unwrap();
-
-        let entries = manager.list_entries();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].id, "test-001");
-
-        std::fs::remove_dir_all(&tmp).ok();
-    }
-
-    #[test]
-    fn test_quarantine_update_status() {
-        let tmp = env::temp_dir().join("test_quarantine_status");
-        let manager = QuarantineManager::new(tmp.clone());
-
-        let entry = make_test_entry("test-002");
-        manager.add_entry(entry).unwrap();
-
-        manager.update_status("test-002", QuarantineStatus::Reviewed, Some("Reviewed".to_string())).unwrap();
-
-        let updated = manager.get_entry("test-002").unwrap().unwrap();
-        assert!(matches!(updated.status, QuarantineStatus::Reviewed));
-
-        std::fs::remove_dir_all(&tmp).ok();
-    }
-
-    #[test]
-    fn test_quarantine_delete() {
-        let tmp = env::temp_dir().join("test_quarantine_delete");
-        let manager = QuarantineManager::new(tmp.clone());
-
-        let entry = make_test_entry("test-003");
-        manager.add_entry(entry).unwrap();
-
-        manager.delete_entry("test-003").unwrap();
-        let result = manager.get_entry("test-003").unwrap();
-        assert!(result.is_none());
-
-        std::fs::remove_dir_all(&tmp).ok();
-    }
-
-    #[test]
-    fn test_quarantine_stats() {
-        let tmp = env::temp_dir().join("test_quarantine_stats");
-        let manager = QuarantineManager::new(tmp.clone());
-
-        manager.add_entry(make_test_entry("s1")).unwrap();
-        manager.add_entry(make_test_entry("s2")).unwrap();
-
-        let stats = manager.get_stats();
-        assert_eq!(stats.total, 2);
-        assert_eq!(stats.pending, 2);
-
-        std::fs::remove_dir_all(&tmp).ok();
-    }
 }

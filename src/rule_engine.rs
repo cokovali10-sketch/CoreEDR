@@ -34,7 +34,7 @@ pub struct RuleEngine {
 }
 
 impl RuleEngine {
-    pub fn new(config: &RulesConfig) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(config: &RulesConfig) -> Result<Self, crate::error::CoreError> {
         let mut rules = Vec::new();
 
         for rules_file in &config.custom_signatures {
@@ -184,7 +184,7 @@ impl RuleEngine {
             .any(|n| n.eq_ignore_ascii_case(&process.name))
     }
 
-    pub fn load_rules_from_file(&mut self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn load_rules_from_file(&mut self, path: &Path) -> Result<(), crate::error::CoreError> {
         let content = std::fs::read_to_string(path)?;
         let rules: Vec<Rule> = serde_json::from_str(&content)?;
         self.rules.extend(rules);

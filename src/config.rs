@@ -1,3 +1,4 @@
+use crate::error::{CoreError, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -153,13 +154,14 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn load(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let content = std::fs::read_to_string(path)?;
+    pub fn load(path: &str) -> Result<Self> {
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| CoreError::ConfigNotFound { path: PathBuf::from(path) })?;
         let config: Config = serde_json::from_str(&content)?;
         Ok(config)
     }
 
-    pub fn save(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save(&self, path: &str) -> Result<()> {
         let json = serde_json::to_string_pretty(self)?;
         std::fs::write(path, json)?;
         Ok(())

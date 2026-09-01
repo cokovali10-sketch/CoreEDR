@@ -11,9 +11,21 @@
     "watch_file_system": true,
     "watch_network": true,
     "watch_registry": false,
-    "monitored_dirs": ["/tmp", "/home", "C:\\Users"],
-    "ignored_dirs": ["/proc", "/sys", "C:\\Windows\\System32"],
-    "ignored_processes": ["coreedr", "systemd", "launchd"]
+    "monitored_dirs": [
+      "/tmp",
+      "C:\\Users",
+      "/home"
+    ],
+    "ignored_dirs": [
+      "/proc",
+      "/sys",
+      "C:\\Windows\\System32"
+    ],
+    "ignored_processes": [
+      "coreedr",
+      "systemd",
+      "launchd"
+    ]
   },
   "detection": {
     "enable_heuristic": true,
@@ -45,13 +57,43 @@
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     ],
     "blacklisted_names": [
-      "mimikatz", "lazagne", "bloodhound", "cobaltstrike",
-      "meterpreter", "empire", "covenant", "sliver", "havoc"
+      "mimikatz",
+      "lazagne",
+      "bloodhound",
+      "cobaltstrike",
+      "meterpreter"
     ],
     "whitelisted_hashes": [],
     "whitelisted_names": [
-      "svchost.exe", "csrss.exe", "lsass.exe", "explorer.exe",
-      "kernel_task", "launchd", "systemd", "bash", "coreedr"
+      "svchost.exe",
+      "csrss.exe",
+      "lsass.exe",
+      "explorer.exe",
+      "kernel_task",
+      "launchd",
+      "systemd"
     ]
+  },
+  "api": {
+    "enabled": true,
+    "port": 8080,
+    "api_key": null,
+    "cors_origins": ["http://localhost:8080"]
+  },
+  "ml": {
+    "model_path": "./models/threat_model.bin",
+    "confidence_threshold": 0.7,
+    "enable_ml_scoring": true
+  },
+  "yara": {
+    "rules_path": "./rules",
+    "compiled_path": "./rules/compiled",
+    "auto_compile": true
+  },
+  "tamper": {
+    "enable_integrity_check": true,
+    "enable_anti_kill": true,
+    "watchdog_enabled": true,
+    "heartbeat_interval_seconds": 30
   }
 }
