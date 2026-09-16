@@ -36,7 +36,13 @@ pub mod ml;
 // Phase 10: Tamper protection
 pub mod tamper;
 
-// Phase 11: REST API
+// Phase 11: MITRE ATT&CK mapping
+pub mod mitre;
+
+// Phase 12: Event correlation
+pub mod correlation;
+
+// Phase 13: REST API
 #[cfg(feature = "api")]
 pub mod api;
 

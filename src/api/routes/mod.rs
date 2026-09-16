@@ -5,3 +5,5 @@ pub mod alerts;
 pub mod config;
 pub mod system;
 pub mod rules;
+pub mod mitre;
+pub mod correlation;

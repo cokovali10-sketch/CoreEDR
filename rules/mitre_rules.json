@@ -1,0 +1,152 @@
+[
+  {
+    "id": "MITRE-001",
+    "name": "Suspicious PowerShell Execution",
+    "description": "Detects suspicious PowerShell execution patterns associated with T1059.001",
+    "severity": "high",
+    "enabled": true,
+    "condition": {
+      "CommandLineContains": ["powershell", "-encodedcommand"]
+    },
+    "action": "alert",
+    "mitre": {
+      "technique": "T1059.001",
+      "tactic": "Execution"
+    }
+  },
+  {
+    "id": "MITRE-002",
+    "name": "Credential Dumping - LSASS Access",
+    "description": "Detects attempts to access LSASS process for credential dumping (T1003.001)",
+    "severity": "critical",
+    "enabled": true,
+    "condition": {
+      "NameMatches": "(?i)(mimikatz|procdump.*lsass|lsass.*dump)"
+    },
+    "action": "contain",
+    "mitre": {
+      "technique": "T1003.001",
+      "tactic": "Credential Access"
+    }
+  },
+  {
+    "id": "MITRE-003",
+    "name": "Persistence via Registry Run Key",
+    "description": "Detects modifications to Registry Run keys (T1547.001)",
+    "severity": "high",
+    "enabled": true,
+    "condition": {
+      "CommandLineContains": ["reg", "add", "currentversion\\run"]
+    },
+    "action": "alert",
+    "mitre": {
+      "technique": "T1547.001",
+      "tactic": "Persistence"
+    }
+  },
+  {
+    "id": "MITRE-004",
+    "name": "Scheduled Task Creation",
+    "description": "Detects scheduled task creation for persistence (T1053)",
+    "severity": "medium",
+    "enabled": true,
+    "condition": {
+      "CommandLineContains": ["schtasks", "/create"]
+    },
+    "action": "alert",
+    "mitre": {
+      "technique": "T1053",
+      "tactic": "Persistence"
+    }
+  },
+  {
+    "id": "MITRE-005",
+    "name": "Defense Evasion - Log Clearing",
+    "description": "Detects Windows event log clearing (T1070.001)",
+    "severity": "high",
+    "enabled": true,
+    "condition": {
+      "CommandLineContains": ["wevtutil", "cl"]
+    },
+    "action": "alert",
+    "mitre": {
+      "technique": "T1070.001",
+      "tactic": "Defense Evasion"
+    }
+  },
+  {
+    "id": "MITRE-006",
+    "name": "Process Injection",
+    "description": "Detects potential process injection via RemoteThread creation (T1055)",
+    "severity": "critical",
+    "enabled": true,
+    "condition": {
+      "CommandLineContains": ["createremotethread", "writeprocessmemory"]
+    },
+    "action": "contain",
+    "mitre": {
+      "technique": "T1055",
+      "tactic": "Defense Evasion"
+    }
+  },
+  {
+    "id": "MITRE-007",
+    "name": "Ransomware - Shadow Copy Deletion",
+    "description": "Detects shadow copy deletion typical of ransomware (T1490)",
+    "severity": "critical",
+    "enabled": true,
+    "condition": {
+      "CommandLineContains": ["vssadmin", "delete", "shadows"]
+    },
+    "action": "contain",
+    "mitre": {
+      "technique": "T1490",
+      "tactic": "Impact"
+    }
+  },
+  {
+    "id": "MITRE-008",
+    "name": "Ingress Tool Transfer - Certutil",
+    "description": "Detects certutil used for downloading tools (T1105)",
+    "severity": "high",
+    "enabled": true,
+    "condition": {
+      "CommandLineContains": ["certutil", "-urlcache"]
+    },
+    "action": "alert",
+    "mitre": {
+      "technique": "T1105",
+      "tactic": "Command and Control"
+    }
+  },
+  {
+    "id": "MITRE-009",
+    "name": "Discovery - System Info",
+    "description": "Detects system information discovery commands (T1082)",
+    "severity": "low",
+    "enabled": true,
+    "condition": {
+      "NameMatches": "(?i)(systeminfo|uname)\\.?exe?$"
+    },
+    "action": "log",
+    "mitre": {
+      "technique": "T1082",
+      "tactic": "Discovery"
+    }
+  },
+  {
+    "id": "MITRE-010",
+    "name": "Lateral Movement - PsExec",
+    "description": "Detects PsExec usage for lateral movement (T1021.002)",
+    "severity": "high",
+    "enabled": true,
+    "condition": {
+      "NameMatches": "(?i)psexec\\.exe"
+    },
+    "action": "alert",
+    "mitre": {
+      "technique": "T1021.002",
+      "tactic": "Lateral Movement"
+    }
+  }
+]
