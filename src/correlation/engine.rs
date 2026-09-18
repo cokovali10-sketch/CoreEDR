@@ -64,6 +64,126 @@ impl Severity {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum IncidentState {
+    New,
+    Triaged,
+    Investigating,
+    Contained,
+    Eradicating,
+    Recovering,
+    Resolved,
+    Closed,
+    Reopened,
+}
+
+impl IncidentState {
+    pub fn from_str(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "new" => IncidentState::New,
+            "triaged" => IncidentState::Triaged,
+            "investigating" => IncidentState::Investigating,
+            "contained" => IncidentState::Contained,
+            "eradicating" => IncidentState::Eradicating,
+            "recovering" => IncidentState::Recovering,
+            "resolved" => IncidentState::Resolved,
+            "closed" => IncidentState::Closed,
+            "reopened" => IncidentState::Reopened,
+            _ => IncidentState::New,
+        }
+    }
+
+    pub fn can_transition_to(&self, next: &IncidentState) -> bool {
+        matches!(
+            (self, next),
+            (IncidentState::New, IncidentState::Triaged)
+                | (IncidentState::Triaged, IncidentState::Investigating)
+                | (IncidentState::Investigating, IncidentState::Contained)
+                | (IncidentState::Contained, IncidentState::Eradicating)
+                | (IncidentState::Eradicating, IncidentState::Recovering)
+                | (IncidentState::Recovering, IncidentState::Resolved)
+                | (IncidentState::Resolved, IncidentState::Closed)
+                | (IncidentState::Closed, IncidentState::Reopened)
+                | (IncidentState::Reopened, IncidentState::Investigating)
+                | (IncidentState::Investigating, IncidentState::Resolved)
+                | (IncidentState::Triaged, IncidentState::Resolved)
+        )
+    }
+
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, IncidentState::Closed)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Incident {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub state: IncidentState,
+    pub severity: Severity,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub closed_at: Option<DateTime<Utc>>,
+    pub assignee: Option<String>,
+    pub chain_ids: Vec<String>,
+    pub timeline: Vec<IncidentEvent>,
+    pub mitre_techniques: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IncidentEvent {
+    pub timestamp: DateTime<Utc>,
+    pub action: String,
+    pub actor: String,
+    pub notes: Option<String>,
+}
+
+impl Incident {
+    pub fn new(title: String, description: String, severity: Severity) -> Self {
+        let now = Utc::now();
+        Incident {
+            id: format!("inc-{}", now.timestamp()),
+            title,
+            description,
+            state: IncidentState::New,
+            severity,
+            created_at: now,
+            updated_at: now,
+            closed_at: None,
+            assignee: None,
+            chain_ids: Vec::new(),
+            timeline: Vec::new(),
+            mitre_techniques: Vec::new(),
+        }
+    }
+
+    pub fn transition(&mut self, next_state: IncidentState, actor: String, notes: Option<String>) -> Result<(), String> {
+        if !self.state.can_transition_to(&next_state) {
+            return Err(format!(
+                "Invalid transition: {:?} -> {:?}",
+                self.state, next_state
+            ));
+        }
+
+        self.timeline.push(IncidentEvent {
+            timestamp: Utc::now(),
+            action: format!("{:?} -> {:?}", self.state, next_state),
+            actor,
+            notes,
+        });
+
+        self.state = next_state;
+        self.updated_at = Utc::now();
+
+        if self.state.is_terminal() {
+            self.closed_at = Some(Utc::now());
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventChain {
     pub id: String,
@@ -78,6 +198,7 @@ pub struct EventChain {
 pub struct CorrelationEngine {
     events: Vec<CorrelatedEvent>,
     chains: HashMap<String, EventChain>,
+    incidents: HashMap<String, Incident>,
     process_tree: HashMap<u32, Vec<u32>>,
     time_window: Duration,
     max_events: usize,
@@ -88,6 +209,7 @@ impl CorrelationEngine {
         CorrelationEngine {
             events: Vec::new(),
             chains: HashMap::new(),
+            incidents: HashMap::new(),
             process_tree: HashMap::new(),
             time_window: Duration::minutes(5),
             max_events: 100000,
@@ -272,6 +394,70 @@ impl CorrelationEngine {
         let cutoff = Utc::now() - self.time_window * 10;
         self.events.retain(|e| e.timestamp > cutoff);
     }
+
+    pub fn create_incident(&mut self, title: String, description: String, severity: Severity) -> Incident {
+        let incident = Incident::new(title, description, severity);
+        self.incidents.insert(incident.id.clone(), incident.clone());
+        incident
+    }
+
+    pub fn get_incident(&self, id: &str) -> Option<&Incident> {
+        self.incidents.get(id)
+    }
+
+    pub fn get_incidents(&self) -> Vec<&Incident> {
+        self.incidents.values().collect()
+    }
+
+    pub fn get_active_incidents(&self) -> Vec<&Incident> {
+        self.incidents.values()
+            .filter(|i| !i.state.is_terminal())
+            .collect()
+    }
+
+    pub fn transition_incident(
+        &mut self,
+        id: &str,
+        next_state: IncidentState,
+        actor: String,
+        notes: Option<String>,
+    ) -> Result<(), String> {
+        if let Some(incident) = self.incidents.get_mut(id) {
+            incident.transition(next_state, actor, notes)
+        } else {
+            Err(format!("Incident {} not found", id))
+        }
+    }
+
+    pub fn link_chain_to_incident(&mut self, incident_id: &str, chain_id: &str) -> Result<(), String> {
+        if let Some(incident) = self.incidents.get_mut(incident_id) {
+            if !incident.chain_ids.contains(&chain_id.to_string()) {
+                incident.chain_ids.push(chain_id.to_string());
+            }
+            Ok(())
+        } else {
+            Err(format!("Incident {} not found", incident_id))
+        }
+    }
+
+    pub fn get_incident_stats(&self) -> IncidentStats {
+        let mut by_state = HashMap::new();
+        for incident in self.incidents.values() {
+            *by_state.entry(format!("{:?}", incident.state)).or_insert(0) += 1;
+        }
+
+        let mut by_severity = HashMap::new();
+        for incident in self.incidents.values() {
+            *by_severity.entry(incident.severity.to_string()).or_insert(0) += 1;
+        }
+
+        IncidentStats {
+            total: self.incidents.len(),
+            active: self.get_active_incidents().len(),
+            by_state,
+            by_severity,
+        }
+    }
 }
 
 impl Default for CorrelationEngine {
@@ -286,6 +472,14 @@ pub struct CorrelationStats {
     pub total_chains: usize,
     pub event_type_counts: HashMap<String, usize>,
     pub chains_by_severity: HashMap<String, usize>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct IncidentStats {
+    pub total: usize,
+    pub active: usize,
+    pub by_state: HashMap<String, usize>,
+    pub by_severity: HashMap<String, usize>,
 }
 
 fn uuid_simple() -> String {
