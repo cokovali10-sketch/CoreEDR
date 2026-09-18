@@ -83,12 +83,19 @@ impl FileMonitor {
 
         std::thread::spawn(move || {
             loop {
-                if let Ok(event) = event_rx.lock().unwrap().recv_timeout(Duration::from_millis(100))
-                {
-                    let mut buffer = event_buffer.lock().unwrap();
-                    buffer.push(event);
-                    if buffer.len() > max_buffer {
-                        buffer.drain(0..buffer.len() - max_buffer);
+                let event = {
+                    let rx = match event_rx.lock() {
+                        Ok(rx) => rx,
+                        Err(_) => continue,
+                    };
+                    rx.recv_timeout(Duration::from_millis(100))
+                };
+                if let Ok(event) = event {
+                    if let Ok(mut buffer) = event_buffer.lock() {
+                        buffer.push(event);
+                        if buffer.len() > max_buffer {
+                            buffer.drain(0..buffer.len() - max_buffer);
+                        }
                     }
                 }
             }
@@ -106,7 +113,10 @@ impl FileMonitor {
     }
 
     pub fn get_events(&self) -> Vec<FileEvent> {
-        self.event_buffer.lock().unwrap().clone()
+        self.event_buffer
+            .lock()
+            .map(|buf| buf.clone())
+            .unwrap_or_default()
     }
 
     pub fn is_watching(&self) -> bool {
@@ -132,7 +142,9 @@ impl FileMonitor {
     }
 
     pub fn clear_buffer(&self) {
-        self.event_buffer.lock().unwrap().clear();
+        if let Ok(mut buffer) = self.event_buffer.lock() {
+            buffer.clear();
+        }
     }
 
     fn convert_event(event: Event, ignored_dirs: &HashSet<PathBuf>) -> Option<FileEvent> {
@@ -174,16 +186,22 @@ pub trait FileWatcherExt {
 
 impl FileWatcherExt for FileMonitor {
     fn get_recent_events(&self, count: usize) -> Vec<FileEvent> {
-        let buffer = self.event_buffer.lock().unwrap();
-        buffer.iter().rev().take(count).cloned().collect()
+        self.event_buffer
+            .lock()
+            .map(|buffer| buffer.iter().rev().take(count).cloned().collect())
+            .unwrap_or_default()
     }
 
     fn get_events_for_path(&self, path: &Path) -> Vec<FileEvent> {
-        let buffer = self.event_buffer.lock().unwrap();
-        buffer
-            .iter()
-            .filter(|e| e.path.starts_with(path))
-            .cloned()
-            .collect()
+        self.event_buffer
+            .lock()
+            .map(|buffer| {
+                buffer
+                    .iter()
+                    .filter(|e| e.path.starts_with(path))
+                    .cloned()
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 }

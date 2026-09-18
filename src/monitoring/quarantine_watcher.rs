@@ -88,7 +88,10 @@ impl QuarantineWatcher {
     }
 
     pub fn get_events(&self) -> Vec<SecurityEvent> {
-        self.events.lock().unwrap().clone()
+        self.events
+            .lock()
+            .map(|events| events.clone())
+            .unwrap_or_default()
     }
 
     pub fn is_watching(&self) -> bool {
@@ -130,8 +133,9 @@ impl QuarantineWatcher {
             };
 
             if let Some(security_event) = security_event {
-                let mut events = events.lock().unwrap();
-                events.push(security_event);
+                if let Ok(mut events) = events.lock() {
+                    events.push(security_event);
+                }
             }
         }
     }

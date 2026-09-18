@@ -234,7 +234,10 @@ async fn main() {
 
         Commands::Config => {
             let config = Config::default_config();
-            println!("{}", serde_json::to_string_pretty(&config).unwrap());
+            match serde_json::to_string_pretty(&config) {
+                Ok(json) => println!("{}", json),
+                Err(e) => eprintln!("[!] Failed to serialize config: {}", e),
+            }
         }
 
         Commands::Quarantine { config } => {
@@ -265,8 +268,13 @@ async fn main() {
             println!("[*] Starting CoreEDR API server on port {}...", port);
             println!("[*] Web UI: http://localhost:{}", port);
 
-            let scanner = Scanner::new(config.clone())
-                .expect("Failed to initialize scanner");
+            let scanner = match Scanner::new(config.clone()) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("[!] Failed to initialize scanner: {}", e);
+                    process::exit(1);
+                }
+            };
             let state = api::AppState {
                 scanner: Arc::new(RwLock::new(scanner)),
                 config: Arc::new(RwLock::new(config)),
@@ -274,11 +282,18 @@ async fn main() {
 
             let app = api::create_router(state);
 
-            let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
-                .await
-                .unwrap();
+            let listener = match tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await {
+                Ok(l) => l,
+                Err(e) => {
+                    eprintln!("[!] Failed to bind to port {}: {}", port, e);
+                    process::exit(1);
+                }
+            };
             println!("[*] Server listening on http://0.0.0.0:{}", port);
-            axum::serve(listener, app).await.unwrap();
+            if let Err(e) = axum::serve(listener, app).await {
+                eprintln!("[!] Server error: {}", e);
+                process::exit(1);
+            }
         }
 
         #[cfg(feature = "auto-update")]

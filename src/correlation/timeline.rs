@@ -80,8 +80,12 @@ impl EventTimeline {
                 duration_seconds: 0,
             }
         } else {
-            let start = entries.first().unwrap().timestamp.clone();
-            let end = entries.last().unwrap().timestamp.clone();
+            let start = entries.first()
+                .map(|e| e.timestamp.clone())
+                .unwrap_or_default();
+            let end = entries.last()
+                .map(|e| e.timestamp.clone())
+                .unwrap_or_default();
             let first_ts = chrono::DateTime::parse_from_rfc3339(&start)
                 .map(|dt| dt.with_timezone(&chrono::Utc))
                 .unwrap_or_else(|_| chrono::Utc::now());
