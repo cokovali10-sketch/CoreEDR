@@ -298,3 +298,38 @@ Latest results (Windows, release, single-threaded):
 | yara_scanner/scan_bytes | ~5-20 us |
 
 Results vary by hardware and rule set. Run cargo bench to reproduce.
+## Problem
+
+Endpoint detection tools are often either too heavy (enterprise EDR with kernel drivers) or too shallow (signature-only AV). CoreEDR targets the middle ground: a lightweight, user-mode Rust engine combining heuristic analysis, YARA, ML scoring, MITRE ATT&CK mapping, and event correlation — without kernel dependencies.
+
+## Architecture
+
+- **Process monitor** (platform-specific: ToolHelp on Windows, /proc on Linux, ps on macOS) enumerates processes and builds process trees.
+- **Heuristic engine** applies 6 detection vectors (suspicious name, memory anomaly, CPU anomaly, process chain, command line, hidden process) and produces a risk score + severity.
+- **Rule engine** evaluates JSON-defined rules and blacklists/whitelists.
+- **YARA scanner** compiles and runs YARA rules over bytes/files/process memory.
+- **ML classifier** (logistic regression) scores feature vectors.
+- **MITRE mapper** maps detections to ATT&CK techniques.
+- **Correlation engine** links events into attack chains with incidents.
+- **Containment** kills/quarantines/alerts based on recommended action.
+- **Alert manager** deduplicates with cooldown.
+- **REST API / WebSocket** (optional feature) for management.
+
+## Trade-offs
+
+- User-mode only: no kernel-level visibility, but portable and safe to deploy.
+- Heuristic + ML are lightweight (no deep learning); lower accuracy than heavy models but runs on any host.
+- Optional features gated behind Cargo features to keep the core small.
+- Windows process enumeration uses ToolHelp (no wmic dependency) for compatibility.
+
+## Benchmarks
+
+Run `cargo bench`. See `benches/detection_benchmarks.rs`.
+
+## Limitations
+
+- No kernel driver: cannot detect kernel-level rootkits or hook syscalls.
+- ML model is a simple logistic regression; not trained on large datasets in-tree.
+- Behavioral analysis is rule-based, not ML-driven.
+- API module (`api` feature) is currently not compiling (planned for next release).
+- YARA process-memory scanning reads only up to 4 KB per region.
