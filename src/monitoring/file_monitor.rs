@@ -46,8 +46,8 @@ impl FileMonitor {
         let watched_dirs = self.watched_dirs.clone();
         let ignored_dirs = self.ignored_dirs.clone();
 
-        let mut watcher = notify::recommended_watcher(move |res: notify::Result<Event>| {
-            match res {
+        let mut watcher =
+            notify::recommended_watcher(move |res: notify::Result<Event>| match res {
                 Ok(event) => {
                     if let Some(file_event) = Self::convert_event(event, &ignored_dirs) {
                         let _ = event_tx.send(file_event);
@@ -56,21 +56,18 @@ impl FileMonitor {
                 Err(e) => {
                     eprintln!("File watch error: {}", e);
                 }
-            }
-        })
-        .map_err(|e| CoreError::Internal(format!("Failed to create file watcher: {}", e)))?;
+            })
+            .map_err(|e| CoreError::Internal(format!("Failed to create file watcher: {}", e)))?;
 
         for dir in &watched_dirs {
             if dir.exists() {
-                watcher
-                    .watch(dir, RecursiveMode::Recursive)
-                    .map_err(|e| {
-                        CoreError::Internal(format!(
-                            "Failed to watch directory {}: {}",
-                            dir.display(),
-                            e
-                        ))
-                    })?;
+                watcher.watch(dir, RecursiveMode::Recursive).map_err(|e| {
+                    CoreError::Internal(format!(
+                        "Failed to watch directory {}: {}",
+                        dir.display(),
+                        e
+                    ))
+                })?;
             }
         }
 
@@ -81,21 +78,20 @@ impl FileMonitor {
         let event_buffer = self.event_buffer.clone();
         let max_buffer = self.max_buffer_size;
 
-        std::thread::spawn(move || {
-            loop {
-                let event = {
-                    let rx = match event_rx.lock() {
-                        Ok(rx) => rx,
-                        Err(_) => continue,
-                    };
-                    rx.recv_timeout(Duration::from_millis(100))
+        std::thread::spawn(move || loop {
+            let event = {
+                let rx = match event_rx.lock() {
+                    Ok(rx) => rx,
+                    Err(_) => continue,
                 };
-                if let Ok(event) = event {
-                    if let Ok(mut buffer) = event_buffer.lock() {
-                        buffer.push(event);
-                        if buffer.len() > max_buffer {
-                            buffer.drain(0..buffer.len() - max_buffer);
-                        }
+                rx.recv_timeout(Duration::from_millis(100))
+            };
+            if let Ok(event) = event {
+                if let Ok(mut buffer) = event_buffer.lock() {
+                    buffer.push(event);
+                    if buffer.len() > max_buffer {
+                        let excess = buffer.len() - max_buffer;
+                        buffer.drain(0..excess);
                     }
                 }
             }
@@ -126,15 +122,13 @@ impl FileMonitor {
     pub fn add_directory(&mut self, dir: PathBuf) -> Result<()> {
         if let Some(ref mut watcher) = self.watcher {
             if dir.exists() {
-                watcher
-                    .watch(&dir, RecursiveMode::Recursive)
-                    .map_err(|e| {
-                        CoreError::Internal(format!(
-                            "Failed to watch directory {}: {}",
-                            dir.display(),
-                            e
-                        ))
-                    })?;
+                watcher.watch(&dir, RecursiveMode::Recursive).map_err(|e| {
+                    CoreError::Internal(format!(
+                        "Failed to watch directory {}: {}",
+                        dir.display(),
+                        e
+                    ))
+                })?;
                 self.watched_dirs.push(dir);
             }
         }

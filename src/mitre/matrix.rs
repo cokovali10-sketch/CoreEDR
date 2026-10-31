@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use super::techniques::{Tactic, TechniqueId, build_technique_database};
 use super::mapper::MitreMapping;
+use super::techniques::{build_technique_database, Tactic, TechniqueId};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MitreCell {
@@ -28,7 +28,8 @@ impl MitreMatrix {
 
         let mut cells: HashMap<String, Vec<MitreCell>> = HashMap::new();
         for tactic in Tactic::all() {
-            let techs: Vec<MitreCell> = db.values()
+            let techs: Vec<MitreCell> = db
+                .values()
                 .filter(|t| t.tactic == tactic)
                 .map(|t| MitreCell {
                     technique_id: t.id.0.clone(),
@@ -67,7 +68,9 @@ impl MitreMatrix {
 
         for (tactic_name, cells) in &mut self.cells {
             for cell in cells.iter_mut() {
-                if let Some((count, max_conf, last_seen)) = technique_detections.get(&cell.technique_id) {
+                if let Some((count, max_conf, last_seen)) =
+                    technique_detections.get(&cell.technique_id)
+                {
                     cell.detections = *count;
                     cell.max_confidence = *max_conf;
                     cell.last_seen = last_seen.clone();
@@ -84,14 +87,16 @@ impl MitreMatrix {
     }
 
     pub fn get_high_confidence_techniques(&self, threshold: f64) -> Vec<&MitreCell> {
-        self.cells.values()
+        self.cells
+            .values()
             .flatten()
             .filter(|c| c.max_confidence >= threshold && c.detections > 0)
             .collect()
     }
 
     pub fn get_uncovored_tactics(&self) -> Vec<String> {
-        self.tactics.iter()
+        self.tactics
+            .iter()
             .filter(|t| {
                 if let Some(cells) = self.cells.get(t.as_str()) {
                     cells.iter().all(|c| c.detections == 0)

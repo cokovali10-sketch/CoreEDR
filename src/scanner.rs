@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::containment::{ContainmentAction, ContainmentEngine};
 use crate::error::{CoreError, Result};
-use crate::heuristic_engine::{Action, HeuristicEngine};
 use crate::hash_engine::HashEngine;
+use crate::heuristic_engine::{Action, HeuristicEngine};
 use crate::logger::{EventCategory, SecurityLogger};
 use crate::process_monitor::{ProcessDelta, ProcessMonitor};
 use crate::rule_engine::RuleEngine;
@@ -26,7 +26,11 @@ impl Scanner {
         let logger = SecurityLogger::new(&config.logging.log_path, config.logging.json_format)
             .map_err(|e| CoreError::Logger(e.to_string()))?;
 
-        logger.info(EventCategory::System, "scanner", "CoreEDR Scanner initializing");
+        logger.info(
+            EventCategory::System,
+            "scanner",
+            "CoreEDR Scanner initializing",
+        );
 
         let process_monitor = ProcessMonitor::new(config.general.scan_interval_ms);
         let heuristic_engine = HeuristicEngine::new(config.detection.clone());
@@ -38,10 +42,14 @@ impl Scanner {
             config.response.cooldown_seconds,
         );
         let alert_manager = crate::alert::AlertManager::new(1000, config.response.cooldown_seconds);
-        let rule_engine = RuleEngine::new(&config.rules)
-            .map_err(|e| CoreError::RuleEngine(e.to_string()))?;
+        let rule_engine =
+            RuleEngine::new(&config.rules).map_err(|e| CoreError::RuleEngine(e.to_string()))?;
 
-        logger.info(EventCategory::System, "scanner", "CoreEDR Scanner initialized");
+        logger.info(
+            EventCategory::System,
+            "scanner",
+            "CoreEDR Scanner initialized",
+        );
 
         Ok(Self {
             config,
@@ -68,7 +76,9 @@ impl Scanner {
             &format!("Starting scan #{}", self.scan_count),
         );
 
-        let delta = self.process_monitor.scan_processes()
+        let delta = self
+            .process_monitor
+            .scan_processes()
             .map_err(|e| CoreError::ProcessMonitor(e.to_string()))?;
 
         self.logger.info(
@@ -115,7 +125,10 @@ impl Scanner {
                             result.recommended_action.clone(),
                             &self.logger,
                         );
-                        if matches!(action.result, crate::containment::ContainmentResult::Success) {
+                        if matches!(
+                            action.result,
+                            crate::containment::ContainmentResult::Success
+                        ) {
                             self.threats_contained += 1;
                         }
                         containment_actions.push(action);
@@ -141,8 +154,12 @@ impl Scanner {
             new_processes: delta.new_processes.len() as u32,
             terminated_processes: delta.terminated_processes.len() as u32,
             modified_processes: delta.modified_processes.len() as u32,
-            threats_detected: analysis_results.iter().filter(|r| r.risk_score > 40).count() as u32,
-            threats_contained: containment_actions.iter()
+            threats_detected: analysis_results
+                .iter()
+                .filter(|r| r.risk_score > 40)
+                .count() as u32,
+            threats_contained: containment_actions
+                .iter()
                 .filter(|a| matches!(a.result, crate::containment::ContainmentResult::Success))
                 .count() as u32,
             threat_summary,
@@ -180,11 +197,8 @@ impl Scanner {
     }
 
     pub fn run_daemon(&mut self) -> Result<()> {
-        self.logger.info(
-            EventCategory::System,
-            "scanner",
-            "Starting EDR daemon mode",
-        );
+        self.logger
+            .info(EventCategory::System, "scanner", "Starting EDR daemon mode");
 
         loop {
             match self.run_scan() {

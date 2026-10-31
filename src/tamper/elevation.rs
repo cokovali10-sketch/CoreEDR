@@ -93,11 +93,7 @@ fn is_elevated_windows() -> bool {
     unsafe {
         let mut token_handle: *mut c_void = std::ptr::null_mut();
 
-        let result = OpenProcessToken(
-            GetCurrentProcess(),
-            TOKEN_QUERY,
-            &mut token_handle,
-        );
+        let result = OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token_handle);
 
         if result == 0 {
             return false;

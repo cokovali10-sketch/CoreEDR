@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use std::process::Command;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessInfo {
@@ -137,8 +137,13 @@ impl ProcessMonitor {
         self.find_root_pid(self.known_processes[&pid].parent_pid)
     }
 
-    fn build_chain_for_process(&self, root_pid: u32, all: &HashMap<u32, ProcessInfo>) -> ProcessChain {
-        let root_name = all.get(&root_pid)
+    fn build_chain_for_process(
+        &self,
+        root_pid: u32,
+        all: &HashMap<u32, ProcessInfo>,
+    ) -> ProcessChain {
+        let root_name = all
+            .get(&root_pid)
             .map(|p| p.name.clone())
             .unwrap_or_else(|| "unknown".into());
 
@@ -164,7 +169,10 @@ impl ProcessMonitor {
         all: &HashMap<u32, ProcessInfo>,
         nodes: &mut Vec<ProcessChainNode>,
     ) {
-        let name = all.get(&pid).map(|p| p.name.clone()).unwrap_or_else(|| "unknown".into());
+        let name = all
+            .get(&pid)
+            .map(|p| p.name.clone())
+            .unwrap_or_else(|| "unknown".into());
         let parent_pid = all.get(&pid).map(|p| p.parent_pid).unwrap_or(0);
         let risk_score = all.get(&pid).map(|p| p.risk_score).unwrap_or(0);
         let children = self.children_map.get(&pid).cloned().unwrap_or_default();
@@ -214,7 +222,9 @@ impl ProcessMonitor {
         if depth == 0 {
             return;
         }
-        let name = self.known_processes.get(&pid)
+        let name = self
+            .known_processes
+            .get(&pid)
             .map(|p| p.name.clone())
             .unwrap_or_else(|| "unknown".into());
         result.push((pid, name, depth));
@@ -249,49 +259,8 @@ impl ProcessMonitor {
 
     #[cfg(target_os = "windows")]
     fn get_windows_processes(&self) -> Result<HashMap<u32, ProcessInfo>, crate::error::CoreError> {
-        let output = Command::new("wmic")
-            .args([
-                "process",
-                "get",
-                "ProcessId,Name,ExecutablePath,CommandLine,ParentProcessId,WorkingSetSize",
-                "/format:csv",
-            ])
-            .output()?;
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let mut processes = HashMap::new();
-
-        for line in stdout.lines().skip(1) {
-            let parts: Vec<&str> = line.split(',').collect();
-            if parts.len() >= 6 {
-                if let Ok(pid) = parts[5].trim().parse::<u32>() {
-                    let name = parts[1].trim().to_string();
-                    let path = parts[2].trim().to_string();
-                    let cmd = parts[3].trim().to_string();
-                    let parent = parts[4].trim().parse::<u32>().unwrap_or(0);
-                    let memory = parts[5].trim().parse::<u64>().unwrap_or(0);
-
-                    processes.insert(
-                        pid,
-                        ProcessInfo {
-                            pid,
-                            name,
-                            path,
-                            command_line: cmd,
-                            parent_pid: parent,
-                            user: "N/A".to_string(),
-                            memory_usage_kb: memory / 1024,
-                            cpu_percent: 0.0,
-                            start_time: Utc::now(),
-                            hash: None,
-                            risk_score: 0,
-                        },
-                    );
-                }
-            }
-        }
-
-        Ok(processes)
+        <crate::platform::windows::WindowsProcessOps as crate::platform::ProcessOps>::list_processes(
+        )
     }
 
     #[cfg(target_os = "linux")]
@@ -329,6 +298,8 @@ impl ProcessMonitor {
                             start_time: Utc::now(),
                             hash: None,
                             risk_score: 0,
+                            chain_depth: 0,
+                            root_pid: parent,
                         },
                     );
                 }
@@ -371,6 +342,8 @@ impl ProcessMonitor {
                             start_time: Utc::now(),
                             hash: None,
                             risk_score: 0,
+                            chain_depth: 0,
+                            root_pid: parent,
                         },
                     );
                 }

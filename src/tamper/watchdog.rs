@@ -72,9 +72,10 @@ impl Watchdog {
         }
 
         let content = fs::read_to_string(&self.heartbeat_path)?;
-        let timestamp: u64 = content.trim().parse().map_err(|_| {
-            CoreError::Internal("Invalid heartbeat timestamp".to_string())
-        })?;
+        let timestamp: u64 = content
+            .trim()
+            .parse()
+            .map_err(|_| CoreError::Internal("Invalid heartbeat timestamp".to_string()))?;
 
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -101,9 +102,10 @@ impl Watchdog {
         }
 
         let content = fs::read_to_string(&self.heartbeat_path)?;
-        let timestamp: u64 = content.trim().parse().map_err(|_| {
-            CoreError::Internal("Invalid heartbeat timestamp".to_string())
-        })?;
+        let timestamp: u64 = content
+            .trim()
+            .parse()
+            .map_err(|_| CoreError::Internal("Invalid heartbeat timestamp".to_string()))?;
 
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)

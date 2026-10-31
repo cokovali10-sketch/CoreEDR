@@ -1,11 +1,10 @@
 pub mod rotation;
 
-use tracing_subscriber::{fmt, EnvFilter};
 use std::path::Path;
+use tracing_subscriber::{fmt, EnvFilter};
 
 pub fn init_logging(log_level: &str, json_format: bool, log_path: Option<&Path>) {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(log_level));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(log_level));
 
     let builder = fmt::Subscriber::builder()
         .with_env_filter(filter)
@@ -26,9 +25,7 @@ pub fn init_logging(log_level: &str, json_format: bool, log_path: Option<&Path>)
             .open(path)
             .expect("Failed to open log file");
 
-        let subscriber = builder
-            .with_writer(std::sync::Mutex::new(file))
-            .finish();
+        let subscriber = builder.with_writer(std::sync::Mutex::new(file)).finish();
         tracing::subscriber::set_global_default(subscriber)
             .expect("Failed to set logging subscriber");
     } else {

@@ -1,6 +1,6 @@
-use crate::process_monitor::ProcessInfo;
-use crate::hash_engine::HashEngine;
 use crate::config::DetectionConfig;
+use crate::hash_engine::HashEngine;
+use crate::process_monitor::ProcessInfo;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -136,7 +136,11 @@ impl HeuristicEngine {
         }
     }
 
-    fn check_name_suspicious(&self, process: &ProcessInfo, indicators: &mut Vec<ThreatIndicator>) -> u32 {
+    fn check_name_suspicious(
+        &self,
+        process: &ProcessInfo,
+        indicators: &mut Vec<ThreatIndicator>,
+    ) -> u32 {
         let name_lower = process.name.to_lowercase();
 
         for suspicious in &self.suspicious_names {
@@ -155,8 +159,13 @@ impl HeuristicEngine {
         0
     }
 
-    fn check_memory_anomaly(&mut self, process: &ProcessInfo, indicators: &mut Vec<ThreatIndicator>) -> u32 {
-        let baseline = self.process_anomaly_baseline
+    fn check_memory_anomaly(
+        &mut self,
+        process: &ProcessInfo,
+        indicators: &mut Vec<ThreatIndicator>,
+    ) -> u32 {
+        let baseline = self
+            .process_anomaly_baseline
             .entry(process.parent_pid)
             .or_insert(ProcessAnomalyBaseline {
                 avg_memory: process.memory_usage_kb as f64,
@@ -186,7 +195,11 @@ impl HeuristicEngine {
         0
     }
 
-    fn check_cpu_anomaly(&self, process: &ProcessInfo, indicators: &mut Vec<ThreatIndicator>) -> u32 {
+    fn check_cpu_anomaly(
+        &self,
+        process: &ProcessInfo,
+        indicators: &mut Vec<ThreatIndicator>,
+    ) -> u32 {
         if process.cpu_percent > 90.0 {
             indicators.push(ThreatIndicator {
                 indicator_type: "cpu_spike".to_string(),
@@ -200,7 +213,11 @@ impl HeuristicEngine {
         0
     }
 
-    fn check_process_chain(&self, process: &ProcessInfo, indicators: &mut Vec<ThreatIndicator>) -> u32 {
+    fn check_process_chain(
+        &self,
+        process: &ProcessInfo,
+        indicators: &mut Vec<ThreatIndicator>,
+    ) -> u32 {
         if process.parent_pid == 0 && process.pid > 1 {
             return 0;
         }
@@ -219,7 +236,11 @@ impl HeuristicEngine {
         0
     }
 
-    fn check_command_line(&self, process: &ProcessInfo, indicators: &mut Vec<ThreatIndicator>) -> u32 {
+    fn check_command_line(
+        &self,
+        process: &ProcessInfo,
+        indicators: &mut Vec<ThreatIndicator>,
+    ) -> u32 {
         let cmd_lower = process.command_line.to_lowercase();
         let mut score = 0;
 
@@ -254,7 +275,11 @@ impl HeuristicEngine {
         score.min(40)
     }
 
-    fn check_hidden_process(&self, process: &ProcessInfo, indicators: &mut Vec<ThreatIndicator>) -> u32 {
+    fn check_hidden_process(
+        &self,
+        process: &ProcessInfo,
+        indicators: &mut Vec<ThreatIndicator>,
+    ) -> u32 {
         let name_lower = process.name.to_lowercase();
 
         if name_lower.starts_with('.') && process.parent_pid > 1 {
@@ -308,7 +333,7 @@ impl HeuristicEngine {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ThreatSummary {
     pub total: u32,
     pub critical: u32,
@@ -336,6 +361,8 @@ mod tests {
             start_time: chrono::Utc::now(),
             hash: None,
             risk_score: 0,
+            chain_depth: 0,
+            root_pid: 1,
         }
     }
 

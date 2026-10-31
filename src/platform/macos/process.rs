@@ -105,6 +105,8 @@ fn read_process_info(pid: u32) -> Result<ProcessInfo> {
         start_time: Utc::now(),
         hash: None,
         risk_score: 0,
+        chain_depth: 0,
+        root_pid: ppid,
     })
 }
 
@@ -170,6 +172,8 @@ fn list_processes_via_sysctl() -> Result<HashMap<u32, ProcessInfo>> {
                         start_time: Utc::now(),
                         hash: None,
                         risk_score: 0,
+                        chain_depth: 0,
+                        root_pid: ppid,
                     },
                 );
             }
@@ -186,9 +190,7 @@ fn get_process_info_via_sysctl(pid: u32) -> Result<ProcessInfo> {
         .map_err(|e| CoreError::Platform(format!("Failed to run ps: {e}")))?;
 
     if !output.status.success() {
-        return Err(CoreError::Platform(format!(
-            "Process {pid} not found"
-        )));
+        return Err(CoreError::Platform(format!("Process {pid} not found")));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -222,6 +224,8 @@ fn get_process_info_via_sysctl(pid: u32) -> Result<ProcessInfo> {
         start_time: Utc::now(),
         hash: None,
         risk_score: 0,
+        chain_depth: 0,
+        root_pid: ppid,
     })
 }
 

@@ -51,17 +51,18 @@ impl QuarantineWatcher {
         let events = self.events.clone();
         let quarantine_path = self.quarantine_path.clone();
 
-        let mut watcher = notify::recommended_watcher(move |res: notify::Result<Event>| {
-            match res {
+        let mut watcher =
+            notify::recommended_watcher(move |res: notify::Result<Event>| match res {
                 Ok(event) => {
                     Self::handle_event(event, &events, &quarantine_path);
                 }
                 Err(e) => {
                     eprintln!("Quarantine watch error: {}", e);
                 }
-            }
-        })
-        .map_err(|e| CoreError::Internal(format!("Failed to create quarantine watcher: {}", e)))?;
+            })
+            .map_err(|e| {
+                CoreError::Internal(format!("Failed to create quarantine watcher: {}", e))
+            })?;
 
         watcher
             .watch(&self.quarantine_path, RecursiveMode::Recursive)

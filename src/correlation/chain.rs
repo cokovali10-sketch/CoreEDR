@@ -1,5 +1,5 @@
+use super::engine::{CorrelatedEvent, EventType, Severity};
 use serde::{Deserialize, Serialize};
-use super::engine::{CorrelatedEvent, Severity, EventType};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttackChain {
@@ -139,10 +139,16 @@ impl ChainBuilder {
 
     pub fn build(mut self) -> AttackChain {
         if self.chain.nodes.len() > 1 {
-            self.chain.start_time = self.chain.nodes.first()
+            self.chain.start_time = self
+                .chain
+                .nodes
+                .first()
                 .map(|n| n.timestamp.clone())
                 .unwrap_or_default();
-            self.chain.end_time = self.chain.nodes.last()
+            self.chain.end_time = self
+                .chain
+                .nodes
+                .last()
                 .map(|n| n.timestamp.clone())
                 .unwrap_or_default();
         }
@@ -150,9 +156,12 @@ impl ChainBuilder {
         self.chain.confidence = if self.chain.mitre_techniques.is_empty() {
             0.5
         } else {
-            self.chain.mitre_techniques.iter()
+            self.chain
+                .mitre_techniques
+                .iter()
                 .map(|t| t.confidence)
-                .sum::<f64>() / self.chain.mitre_techniques.len() as f64
+                .sum::<f64>()
+                / self.chain.mitre_techniques.len() as f64
         };
 
         self.chain
@@ -170,7 +179,11 @@ pub fn build_chain_from_events(events: &[CorrelatedEvent], chain_id: &str) -> Op
     let last = &events[events.len() - 1];
 
     builder = builder
-        .name(&format!("Attack chain from {} to {}", first.process_name.as_deref().unwrap_or("unknown"), last.process_name.as_deref().unwrap_or("unknown")))
+        .name(&format!(
+            "Attack chain from {} to {}",
+            first.process_name.as_deref().unwrap_or("unknown"),
+            last.process_name.as_deref().unwrap_or("unknown")
+        ))
         .severity(last.severity.clone());
 
     for event in events {
@@ -181,7 +194,11 @@ pub fn build_chain_from_events(events: &[CorrelatedEvent], chain_id: &str) -> Op
             process_id: event.process_id,
             process_name: event.process_name.clone(),
             user: event.user.clone(),
-            details: event.details.iter().map(|(k, v)| format!("{}: {}", k, v)).collect(),
+            details: event
+                .details
+                .iter()
+                .map(|(k, v)| format!("{}: {}", k, v))
+                .collect(),
             risk_score: match event.severity {
                 Severity::Critical => 1.0,
                 Severity::High => 0.8,

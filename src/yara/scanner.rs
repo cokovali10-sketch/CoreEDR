@@ -8,34 +8,25 @@ impl YaraManager {
         let mut matches = Vec::new();
 
         for rules in &self.rules {
-            let mut scanner = yara_x::Scanner::new(rules)
-                .map_err(|e| CoreError::Yara(format!("Failed to create scanner: {}", e)))?;
+            let mut scanner = yara_x::Scanner::new(rules);
 
             let scan_results = scanner
                 .scan(data)
                 .map_err(|e| CoreError::Yara(format!("Scan error: {}", e)))?;
 
-            for m in scan_results.iter() {
+            for m in scan_results.matching_rules() {
                 let rule_name = m.identifier().to_string();
                 let namespace = m.namespace().to_string();
-                let tags: Vec<String> = m.tags().map(|t| t.to_string()).collect();
+                let tags: Vec<String> = m.tags().map(|t| t.identifier().to_string()).collect();
                 let severity = tag_to_severity(&tags);
-
-                let matched_strings: Vec<String> = m
-                    .matched_strings()
-                    .iter()
-                    .map(|s| {
-                        String::from_utf8_lossy(s.data())
-                            .chars()
-                            .filter(|c| !c.is_control())
-                            .collect()
-                    })
-                    .collect();
 
                 let description = m
                     .metadata()
-                    .find(|(k, _)| k == "description")
-                    .map(|(_, v)| v.to_string())
+                    .find(|(k, _)| *k == "description")
+                    .map(|(_, v)| match v {
+                        yara_x::MetaValue::String(s) => s.to_string(),
+                        _ => String::new(),
+                    })
                     .unwrap_or_default();
 
                 matches.push(YaraMatch {
@@ -43,7 +34,7 @@ impl YaraManager {
                     namespace,
                     severity,
                     description,
-                    matched_strings,
+                    matched_strings: Vec::new(),
                     process_pid: None,
                     file_path: None,
                 });
@@ -133,12 +124,9 @@ fn read_process_memory(pid: u32) -> Result<Vec<u8>> {
     };
 
     unsafe {
-        let handle = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, pid)
-            .map_err(|e| {
-                CoreError::Yara(format!(
-                    "Failed to open process with PID {}: {}",
-                    pid, e
-                ))
+        let handle =
+            OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, pid).map_err(|e| {
+                CoreError::Yara(format!("Failed to open process with PID {}: {}", pid, e))
             })?;
 
         if handle == INVALID_HANDLE_VALUE {
@@ -158,14 +146,13 @@ fn read_process_memory(pid: u32) -> Result<Vec<u8>> {
         let max_addr = mbi.lpMaximumApplicationAddress as usize;
 
         while address < max_addr {
-            let mut info: windows::Win32::System::SystemInformation::MEMORY_BASIC_INFORMATION =
-                mem::zeroed();
+            let mut info: windows::Win32::System::Memory::MEMORY_BASIC_INFORMATION = mem::zeroed();
 
-            let result = windows::Win32::System::SystemInformation::VirtualQueryEx(
+            let result = windows::Win32::System::Memory::VirtualQueryEx(
                 handle,
-                address as _,
+                Some(address as *const _),
                 &mut info,
-                mem::size_of::<windows::Win32::System::SystemInformation::MEMORY_BASIC_INFORMATION>(),
+                mem::size_of::<windows::Win32::System::Memory::MEMORY_BASIC_INFORMATION>(),
             );
 
             if result == 0 {
@@ -173,22 +160,15 @@ fn read_process_memory(pid: u32) -> Result<Vec<u8>> {
                 continue;
             }
 
-            if info.State == windows::Win32::System::Memory::MEM_COMMIT
-                && (info.Protect
-                    & (windows::Win32::System::Memory::PAGE_READONLY
-                        | windows::Win32::System::Memory::PAGE_READWRITE
-                        | windows::Win32::System::Memory::PAGE_EXECUTE_READ
-                        | windows::Win32::System::Memory::PAGE_EXECUTE_READWRITE))
-                    != 0
-            {
+            if info.State == windows::Win32::System::Memory::MEM_COMMIT {
                 let region_size = info.RegionSize;
                 if region_size > 0 && region_size < 100 * 1024 * 1024 {
                     let mut buf = vec![0u8; region_size.min(4096)];
                     let mut bytes_read = 0usize;
 
-                    let read_result = windows::Win32::System::Threading::ReadProcessMemory(
+                    let read_result = windows::Win32::System::Diagnostics::Debug::ReadProcessMemory(
                         handle,
-                        address as _,
+                        address as *const _,
                         buf.as_mut_ptr() as _,
                         buf.len(),
                         Some(&mut bytes_read),

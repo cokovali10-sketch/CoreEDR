@@ -1,6 +1,6 @@
 use crate::config::RulesConfig;
+use crate::heuristic_engine::{AnalysisResult, Severity, ThreatIndicator};
 use crate::process_monitor::ProcessInfo;
-use crate::heuristic_engine::{AnalysisResult, ThreatIndicator, Severity};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -68,9 +68,7 @@ impl RuleEngine {
             name: "high_entropy_process".to_string(),
             description: "Process with suspiciously high entropy".to_string(),
             severity: Severity::High,
-            condition: RuleCondition::Combined(vec![
-                RuleCondition::MemoryAbove(100_000_000),
-            ]),
+            condition: RuleCondition::Combined(vec![RuleCondition::MemoryAbove(100_000_000)]),
             enabled: true,
         });
 
@@ -138,29 +136,24 @@ impl RuleEngine {
             RuleCondition::NameContains(s) => {
                 process.name.to_lowercase().contains(&s.to_lowercase())
             }
-            RuleCondition::NameMatches(pattern) => {
-                regex::Regex::new(pattern)
-                    .map(|re| re.is_match(&process.name))
-                    .unwrap_or(false)
-            }
+            RuleCondition::NameMatches(pattern) => regex::Regex::new(pattern)
+                .map(|re| re.is_match(&process.name))
+                .unwrap_or(false),
             RuleCondition::HashEquals(hash) => {
                 process.hash.as_ref().map(|h| h == hash).unwrap_or(false)
             }
             RuleCondition::PathContains(s) => {
                 process.path.to_lowercase().contains(&s.to_lowercase())
             }
-            RuleCondition::CommandLineContains(s) => {
-                process.command_line.to_lowercase().contains(&s.to_lowercase())
-            }
-            RuleCondition::MemoryAbove(threshold) => {
-                process.memory_usage_kb > *threshold
-            }
-            RuleCondition::CpuAbove(threshold) => {
-                process.cpu_percent > *threshold
-            }
-            RuleCondition::Combined(conditions) => {
-                conditions.iter().all(|c| self.evaluate_condition(c, process))
-            }
+            RuleCondition::CommandLineContains(s) => process
+                .command_line
+                .to_lowercase()
+                .contains(&s.to_lowercase()),
+            RuleCondition::MemoryAbove(threshold) => process.memory_usage_kb > *threshold,
+            RuleCondition::CpuAbove(threshold) => process.cpu_percent > *threshold,
+            RuleCondition::Combined(conditions) => conditions
+                .iter()
+                .all(|c| self.evaluate_condition(c, process)),
         }
     }
 
@@ -170,7 +163,8 @@ impl RuleEngine {
                 return true;
             }
         }
-        self.whitelisted_names.iter()
+        self.whitelisted_names
+            .iter()
             .any(|n| n.eq_ignore_ascii_case(&process.name))
     }
 
@@ -180,7 +174,8 @@ impl RuleEngine {
                 return true;
             }
         }
-        self.blacklisted_names.iter()
+        self.blacklisted_names
+            .iter()
             .any(|n| n.eq_ignore_ascii_case(&process.name))
     }
 
@@ -253,6 +248,8 @@ mod tests {
             start_time: chrono::Utc::now(),
             hash: None,
             risk_score: 0,
+            chain_depth: 0,
+            root_pid: 1,
         }
     }
 

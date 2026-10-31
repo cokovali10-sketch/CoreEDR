@@ -1,5 +1,5 @@
 use crate::heuristic_engine::{AnalysisResult, Severity};
-use crate::logger::{SecurityLogger, EventCategory};
+use crate::logger::{EventCategory, SecurityLogger};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -34,7 +34,11 @@ impl AlertManager {
         }
     }
 
-    pub fn process_analysis(&mut self, result: &AnalysisResult, logger: &SecurityLogger) -> Option<Alert> {
+    pub fn process_analysis(
+        &mut self,
+        result: &AnalysisResult,
+        logger: &SecurityLogger,
+    ) -> Option<Alert> {
         if result.severity == Severity::Info || result.severity == Severity::Low {
             return None;
         }
@@ -46,7 +50,11 @@ impl AlertManager {
         }
 
         let alert = Alert {
-            id: format!("ALERT-{}-{}", result.process.pid, chrono::Utc::now().timestamp()),
+            id: format!(
+                "ALERT-{}-{}",
+                result.process.pid,
+                chrono::Utc::now().timestamp()
+            ),
             timestamp: chrono::Utc::now(),
             severity: result.severity.clone(),
             title: self.generate_title(result),
@@ -58,7 +66,8 @@ impl AlertManager {
             acknowledged: false,
         };
 
-        self.alert_cooldown.insert(result.process.pid, std::time::Instant::now());
+        self.alert_cooldown
+            .insert(result.process.pid, std::time::Instant::now());
 
         logger.warning(
             EventCategory::HeuristicAnalysis,
@@ -76,15 +85,29 @@ impl AlertManager {
 
     fn generate_title(&self, result: &AnalysisResult) -> String {
         match result.severity {
-            Severity::Critical => format!("CRITICAL: {} (PID: {})", result.process.name, result.process.pid),
-            Severity::High => format!("HIGH RISK: {} (PID: {})", result.process.name, result.process.pid),
-            Severity::Medium => format!("SUSPICIOUS: {} (PID: {})", result.process.name, result.process.pid),
-            _ => format!("NOTICE: {} (PID: {})", result.process.name, result.process.pid),
+            Severity::Critical => format!(
+                "CRITICAL: {} (PID: {})",
+                result.process.name, result.process.pid
+            ),
+            Severity::High => format!(
+                "HIGH RISK: {} (PID: {})",
+                result.process.name, result.process.pid
+            ),
+            Severity::Medium => format!(
+                "SUSPICIOUS: {} (PID: {})",
+                result.process.name, result.process.pid
+            ),
+            _ => format!(
+                "NOTICE: {} (PID: {})",
+                result.process.name, result.process.pid
+            ),
         }
     }
 
     fn generate_description(&self, result: &AnalysisResult) -> String {
-        let indicators: Vec<String> = result.indicators.iter()
+        let indicators: Vec<String> = result
+            .indicators
+            .iter()
             .map(|i| format!("- {} ({})", i.description, i.indicator_type))
             .collect();
 
@@ -115,7 +138,10 @@ impl AlertManager {
     }
 
     pub fn get_alerts_by_severity(&self, severity: &Severity) -> Vec<&Alert> {
-        self.alerts.iter().filter(|a| &a.severity == severity).collect()
+        self.alerts
+            .iter()
+            .filter(|a| &a.severity == severity)
+            .collect()
     }
 
     pub fn get_stats(&self) -> AlertStats {
@@ -141,7 +167,7 @@ impl AlertManager {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AlertStats {
     pub total: u32,
     pub critical: u32,
@@ -171,6 +197,8 @@ mod tests {
                 start_time: chrono::Utc::now(),
                 hash: None,
                 risk_score: score,
+                chain_depth: 0,
+                root_pid: 1,
             },
             risk_score: score,
             severity: Severity::from_score(score),

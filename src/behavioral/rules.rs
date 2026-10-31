@@ -3,9 +3,9 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 
-use crate::error::Result;
-use super::BehavioralEvent;
 use super::alerts::{BehavioralAlert, Severity};
+use super::BehavioralEvent;
+use crate::error::Result;
 
 pub trait BehavioralRule: Send + Sync {
     fn name(&self) -> &str;
@@ -31,24 +31,46 @@ impl BehavioralRule for OfficeAppNetworkSpawn {
 
     fn evaluate(&self, events: &[BehavioralEvent]) -> Option<BehavioralAlert> {
         let office_apps: HashSet<&str> = [
-            "winword.exe", "excel.exe", "powerpnt.exe", "msaccess.exe",
-            "outlook.exe", "mspub.exe", "visio.exe", "onenote.exe",
-        ].iter().cloned().collect();
+            "winword.exe",
+            "excel.exe",
+            "powerpnt.exe",
+            "msaccess.exe",
+            "outlook.exe",
+            "mspub.exe",
+            "visio.exe",
+            "onenote.exe",
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         let mut parent_to_children: HashMap<u32, Vec<u32>> = HashMap::new();
         let mut spawned_pids: HashSet<u32> = HashSet::new();
 
         for event in events {
-            if let BehavioralEvent::ProcessSpawn { parent_pid, child_pid, child_name, .. } = event {
+            if let BehavioralEvent::ProcessSpawn {
+                parent_pid,
+                child_pid,
+                child_name,
+                ..
+            } = event
+            {
                 let parent_name_lower = child_name.to_lowercase();
-                if office_apps.iter().any(|app| parent_name_lower.contains(app)) {
-                    parent_to_children.entry(*parent_pid).or_default().push(*child_pid);
+                if office_apps
+                    .iter()
+                    .any(|app| parent_name_lower.contains(app))
+                {
+                    parent_to_children
+                        .entry(*parent_pid)
+                        .or_default()
+                        .push(*child_pid);
                 }
                 spawned_pids.insert(*child_pid);
             }
         }
 
-        let network_pids: HashSet<u32> = events.iter()
+        let network_pids: HashSet<u32> = events
+            .iter()
             .filter_map(|e| match e {
                 BehavioralEvent::NetworkConnection { pid, .. } => Some(*pid),
                 _ => None,
@@ -56,18 +78,24 @@ impl BehavioralRule for OfficeAppNetworkSpawn {
             .collect();
 
         for (office_pid, children) in &parent_to_children {
-            let bad_children: Vec<u32> = children.iter()
+            let bad_children: Vec<u32> = children
+                .iter()
                 .filter(|child| network_pids.contains(child))
                 .cloned()
                 .collect();
 
             if !bad_children.is_empty() {
-                let involved: Vec<BehavioralEvent> = events.iter()
+                let involved: Vec<BehavioralEvent> = events
+                    .iter()
                     .filter(|e| match e {
-                        BehavioralEvent::ProcessSpawn { parent_pid, child_pid, .. } => {
-                            parent_pid == office_pid && bad_children.contains(child_pid)
+                        BehavioralEvent::ProcessSpawn {
+                            parent_pid,
+                            child_pid,
+                            ..
+                        } => parent_pid == office_pid && bad_children.contains(child_pid),
+                        BehavioralEvent::NetworkConnection { pid, .. } => {
+                            bad_children.contains(pid)
                         }
-                        BehavioralEvent::NetworkConnection { pid, .. } => bad_children.contains(pid),
                         _ => false,
                     })
                     .cloned()
@@ -108,11 +136,17 @@ impl BehavioralRule for PowerShellDownloadExec {
     }
 
     fn evaluate(&self, events: &[BehavioralEvent]) -> Option<BehavioralAlert> {
-        let ps_pids: HashSet<u32> = events.iter()
+        let ps_pids: HashSet<u32> = events
+            .iter()
             .filter_map(|e| match e {
-                BehavioralEvent::ProcessSpawn { child_pid, child_name, .. } => {
-                    if child_name.to_lowercase().contains("powershell") ||
-                       child_name.to_lowercase().contains("pwsh") {
+                BehavioralEvent::ProcessSpawn {
+                    child_pid,
+                    child_name,
+                    ..
+                } => {
+                    if child_name.to_lowercase().contains("powershell")
+                        || child_name.to_lowercase().contains("pwsh")
+                    {
                         Some(*child_pid)
                     } else {
                         None
@@ -126,7 +160,8 @@ impl BehavioralRule for PowerShellDownloadExec {
             return None;
         }
 
-        let network_pids: HashSet<u32> = events.iter()
+        let network_pids: HashSet<u32> = events
+            .iter()
             .filter_map(|e| match e {
                 BehavioralEvent::NetworkConnection { pid, .. } => Some(*pid),
                 _ => None,
@@ -134,16 +169,20 @@ impl BehavioralRule for PowerShellDownloadExec {
             .filter(|pid| ps_pids.contains(pid))
             .collect();
 
-        let write_pids: HashSet<u32> = events.iter()
+        let write_pids: HashSet<u32> = events
+            .iter()
             .filter_map(|e| match e {
-                BehavioralEvent::FileAccess { pid, write: true, .. } => Some(*pid),
+                BehavioralEvent::FileAccess {
+                    pid, write: true, ..
+                } => Some(*pid),
                 BehavioralEvent::FileModification { pid, .. } => Some(*pid),
                 _ => None,
             })
             .filter(|pid| network_pids.contains(pid))
             .collect();
 
-        let exec_pids: HashSet<u32> = events.iter()
+        let exec_pids: HashSet<u32> = events
+            .iter()
             .filter_map(|e| match e {
                 BehavioralEvent::ProcessSpawn { parent_pid, .. } => Some(*parent_pid),
                 _ => None,
@@ -152,11 +191,14 @@ impl BehavioralRule for PowerShellDownloadExec {
             .collect();
 
         if !exec_pids.is_empty() {
-            let involved: Vec<BehavioralEvent> = events.iter()
+            let involved: Vec<BehavioralEvent> = events
+                .iter()
                 .filter(|e| match e {
                     BehavioralEvent::ProcessSpawn { child_pid, .. } => ps_pids.contains(child_pid),
                     BehavioralEvent::NetworkConnection { pid, .. } => ps_pids.contains(pid),
-                    BehavioralEvent::FileAccess { pid, write, .. } => write_pids.contains(pid) && *write,
+                    BehavioralEvent::FileAccess { pid, write, .. } => {
+                        write_pids.contains(pid) && *write
+                    }
                     BehavioralEvent::FileModification { pid, .. } => write_pids.contains(pid),
                     _ => false,
                 })
@@ -169,9 +211,13 @@ impl BehavioralRule for PowerShellDownloadExec {
                 rule_name: self.name().to_string(),
                 severity: self.severity(),
                 confidence: 0.85,
-                description: "PowerShell downloaded a file and executed it — likely malicious staging".to_string(),
+                description:
+                    "PowerShell downloaded a file and executed it — likely malicious staging"
+                        .to_string(),
                 events: involved,
-                recommended_action: "Terminate PowerShell process. Quarantine downloaded file. Scan for IOCs.".to_string(),
+                recommended_action:
+                    "Terminate PowerShell process. Quarantine downloaded file. Scan for IOCs."
+                        .to_string(),
             });
         }
 
@@ -195,11 +241,15 @@ impl BehavioralRule for RapidFileModification {
     }
 
     fn evaluate(&self, events: &[BehavioralEvent]) -> Option<BehavioralAlert> {
-        let modifications: Vec<(u32, String, DateTime<Utc>)> = events.iter()
+        let modifications: Vec<(u32, String, DateTime<Utc>)> = events
+            .iter()
             .filter_map(|e| match e {
-                BehavioralEvent::FileModification { pid, path, timestamp, .. } => {
-                    Some((*pid, path.clone(), *timestamp))
-                }
+                BehavioralEvent::FileModification {
+                    pid,
+                    path,
+                    timestamp,
+                    ..
+                } => Some((*pid, path.clone(), *timestamp)),
                 _ => None,
             })
             .collect();
@@ -222,7 +272,8 @@ impl BehavioralRule for RapidFileModification {
             }
 
             if dirs.len() >= 5 {
-                let involved: Vec<BehavioralEvent> = events.iter()
+                let involved: Vec<BehavioralEvent> = events
+                    .iter()
                     .filter(|e| match e {
                         BehavioralEvent::FileModification { pid: p, .. } => p == pid,
                         _ => false,
@@ -268,23 +319,41 @@ impl BehavioralRule for SuspiciousProcessChain {
 
     fn evaluate(&self, events: &[BehavioralEvent]) -> Option<BehavioralAlert> {
         let suspicious_chains: &[(&[&str], &[&str])] = &[
-            (&["winword.exe", "excel.exe"], &["cmd.exe", "powershell.exe", "wscript.exe", "cscript.exe"]),
-            (&["outlook.exe"], &["powershell.exe", "cmd.exe", "mshta.exe", "wscript.exe"]),
-            (&["iexplore.exe", "msedge.exe", "chrome.exe"], &["powershell.exe", "cmd.exe", "mshta.exe", "wscript.exe"]),
+            (
+                &["winword.exe", "excel.exe"],
+                &["cmd.exe", "powershell.exe", "wscript.exe", "cscript.exe"],
+            ),
+            (
+                &["outlook.exe"],
+                &["powershell.exe", "cmd.exe", "mshta.exe", "wscript.exe"],
+            ),
+            (
+                &["iexplore.exe", "msedge.exe", "chrome.exe"],
+                &["powershell.exe", "cmd.exe", "mshta.exe", "wscript.exe"],
+            ),
             (&["svchost.exe"], &["cmd.exe", "powershell.exe"]),
         ];
 
         for event in events {
-            if let BehavioralEvent::ProcessSpawn { parent_pid, child_pid, child_name, .. } = event {
+            if let BehavioralEvent::ProcessSpawn {
+                parent_pid,
+                child_pid,
+                child_name,
+                ..
+            } = event
+            {
                 let child_lower = child_name.to_lowercase();
 
                 for (_, children) in suspicious_chains {
                     if children.iter().any(|c| child_lower.contains(c)) {
-                        let parent_events: Vec<BehavioralEvent> = events.iter()
+                        let parent_events: Vec<BehavioralEvent> = events
+                            .iter()
                             .filter(|e| match e {
-                                BehavioralEvent::ProcessSpawn { child_pid: p, child_name, .. } => {
-                                    p == parent_pid
-                                }
+                                BehavioralEvent::ProcessSpawn {
+                                    child_pid: p,
+                                    child_name,
+                                    ..
+                                } => p == parent_pid,
                                 _ => false,
                             })
                             .cloned()
@@ -357,13 +426,23 @@ impl BehavioralRule for CredentialAccessPattern {
                         pid_evidence.entry(*pid).or_default().push(event.clone());
                     }
                 }
-                BehavioralEvent::FileAccess { pid, path, read: true, .. } => {
+                BehavioralEvent::FileAccess {
+                    pid,
+                    path,
+                    read: true,
+                    ..
+                } => {
                     let path_lower = path.to_lowercase();
                     if sensitive_files.iter().any(|f| path_lower.contains(f)) {
                         pid_evidence.entry(*pid).or_default().push(event.clone());
                     }
                 }
-                BehavioralEvent::FileAccess { pid, path, write: true, .. } => {
+                BehavioralEvent::FileAccess {
+                    pid,
+                    path,
+                    write: true,
+                    ..
+                } => {
                     let path_lower = path.to_lowercase();
                     if sensitive_files.iter().any(|f| path_lower.contains(f)) {
                         pid_evidence.entry(*pid).or_default().push(event.clone());
@@ -429,13 +508,20 @@ impl BehavioralRule for PersistenceCreation {
 
         for event in events {
             match event {
-                BehavioralEvent::RegistryAccess { pid, key, value, .. } => {
+                BehavioralEvent::RegistryAccess {
+                    pid, key, value, ..
+                } => {
                     let key_lower = key.to_lowercase();
                     if persistence_keys.iter().any(|k| key_lower.contains(k)) {
                         pid_evidence.entry(*pid).or_default().push(event.clone());
                     }
                 }
-                BehavioralEvent::FileAccess { pid, path, write: true, .. }
+                BehavioralEvent::FileAccess {
+                    pid,
+                    path,
+                    write: true,
+                    ..
+                }
                 | BehavioralEvent::FileModification { pid, path, .. } => {
                     let path_lower = path.to_lowercase();
                     if persistence_files.iter().any(|f| path_lower.contains(f)) {
@@ -470,7 +556,9 @@ impl BehavioralRule for PersistenceCreation {
 
 fn uuid_v4_simple() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let t = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+    let t = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
     format!(
         "{:08x}-{:04x}-4{:03x}-{:04x}-{:012x}",
         t.as_secs(),

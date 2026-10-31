@@ -29,7 +29,7 @@ pub async fn start_scan(
     Json(request): Json<StartScanRequest>,
 ) -> Result<Json<Value>, ApiError> {
     let scan_id = Uuid::new_v4().to_string();
-    
+
     let scan_request = ScanRequest {
         path: request.path.unwrap_or_else(|| "/".to_string()),
         recursive: request.recursive.unwrap_or(true),
@@ -38,7 +38,7 @@ pub async fn start_scan(
 
     let scanner = state.scanner.clone();
     let id = scan_id.clone();
-    
+
     tokio::spawn(async move {
         let mut scanner = scanner.write().await;
         if let Err(e) = scanner.start_scan(&id, scan_request).await {
@@ -69,10 +69,11 @@ pub async fn get_scan_status(
     Path(id): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     let scanner = state.scanner.read().await;
-    
-    let scan_info = scanner.get_scan_status(&id)
+
+    let scan_info = scanner
+        .get_scan_status(&id)
         .ok_or_else(|| ApiError::NotFound(format!("Scan {} not found", id)))?;
-    
+
     Ok(Json(json!(ScanStatus {
         scan_id: scan_info.id,
         status: scan_info.status.to_string(),

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use super::techniques::{build_technique_database, Tactic, Technique, TechniqueId};
 use serde::{Deserialize, Serialize};
-use super::techniques::{Tactic, Technique, TechniqueId, build_technique_database};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MitreMapping {
@@ -39,77 +39,202 @@ impl MitreMapper {
     fn build_keyword_map() -> Vec<(Vec<String>, TechniqueId, f64)> {
         vec![
             // PowerShell
-            (vec!["powershell".into(), "-encodedcommand".into()], TechniqueId::new("T1059.001"), 0.9),
-            (vec!["powershell".into(), "download".into()], TechniqueId::new("T1059.001"), 0.85),
-            (vec!["invoke-webrequest".into()], TechniqueId::new("T1059.001"), 0.8),
-            (vec!["net.webclient".into(), "downloadstring".into()], TechniqueId::new("T1059.001"), 0.85),
+            (
+                vec!["powershell".into(), "-encodedcommand".into()],
+                TechniqueId::new("T1059.001"),
+                0.9,
+            ),
+            (
+                vec!["powershell".into(), "download".into()],
+                TechniqueId::new("T1059.001"),
+                0.85,
+            ),
+            (
+                vec!["invoke-webrequest".into()],
+                TechniqueId::new("T1059.001"),
+                0.8,
+            ),
+            (
+                vec!["net.webclient".into(), "downloadstring".into()],
+                TechniqueId::new("T1059.001"),
+                0.85,
+            ),
             (vec!["-enc".into()], TechniqueId::new("T1059.001"), 0.7),
-
             // Command Shell
-            (vec!["cmd.exe".into(), "/c".into()], TechniqueId::new("T1059.003"), 0.6),
-            (vec!["cmd.exe".into(), "net".into()], TechniqueId::new("T1059.003"), 0.5),
-
+            (
+                vec!["cmd.exe".into(), "/c".into()],
+                TechniqueId::new("T1059.003"),
+                0.6,
+            ),
+            (
+                vec!["cmd.exe".into(), "net".into()],
+                TechniqueId::new("T1059.003"),
+                0.5,
+            ),
             // Credential Dumping
             (vec!["mimikatz".into()], TechniqueId::new("T1003.001"), 0.95),
-            (vec!["lsass".into(), "access".into()], TechniqueId::new("T1003.001"), 0.85),
-            (vec!["procdump".into(), "lsass".into()], TechniqueId::new("T1003.001"), 0.9),
-            (vec!["sam".into(), "database".into()], TechniqueId::new("T1003"), 0.8),
+            (
+                vec!["lsass".into(), "access".into()],
+                TechniqueId::new("T1003.001"),
+                0.85,
+            ),
+            (
+                vec!["procdump".into(), "lsass".into()],
+                TechniqueId::new("T1003.001"),
+                0.9,
+            ),
+            (
+                vec!["sam".into(), "database".into()],
+                TechniqueId::new("T1003"),
+                0.8,
+            ),
             (vec!["/etc/shadow".into()], TechniqueId::new("T1003"), 0.9),
             (vec!["ntds.dit".into()], TechniqueId::new("T1003"), 0.9),
             (vec!["lazagne".into()], TechniqueId::new("T1003"), 0.85),
-
             // Persistence
-            (vec!["currentversion\\run".into()], TechniqueId::new("T1547.001"), 0.9),
-            (vec!["startup".into(), "folder".into()], TechniqueId::new("T1547.001"), 0.7),
-            (vec!["schtasks".into(), "/create".into()], TechniqueId::new("T1053"), 0.85),
+            (
+                vec!["currentversion\\run".into()],
+                TechniqueId::new("T1547.001"),
+                0.9,
+            ),
+            (
+                vec!["startup".into(), "folder".into()],
+                TechniqueId::new("T1547.001"),
+                0.7,
+            ),
+            (
+                vec!["schtasks".into(), "/create".into()],
+                TechniqueId::new("T1053"),
+                0.85,
+            ),
             (vec!["crontab".into()], TechniqueId::new("T1053"), 0.8),
-            (vec!["systemd".into(), "service".into()], TechniqueId::new("T1543"), 0.7),
-
+            (
+                vec!["systemd".into(), "service".into()],
+                TechniqueId::new("T1543"),
+                0.7,
+            ),
             // Defense Evasion
-            (vec!["wevtutil".into(), "cl".into()], TechniqueId::new("T1070"), 0.9),
-            (vec!["history".into(), "delete".into()], TechniqueId::new("T1070"), 0.7),
+            (
+                vec!["wevtutil".into(), "cl".into()],
+                TechniqueId::new("T1070"),
+                0.9,
+            ),
+            (
+                vec!["history".into(), "delete".into()],
+                TechniqueId::new("T1070"),
+                0.7,
+            ),
             (vec!["timestomp".into()], TechniqueId::new("T1070"), 0.85),
-            (vec!["process".into(), "inject".into()], TechniqueId::new("T1055"), 0.85),
+            (
+                vec!["process".into(), "inject".into()],
+                TechniqueId::new("T1055"),
+                0.85,
+            ),
             (vec!["remotethread".into()], TechniqueId::new("T1055"), 0.8),
-            (vec!["virtualallocex".into()], TechniqueId::new("T1055"), 0.75),
-            (vec!["createremotethread".into()], TechniqueId::new("T1055"), 0.8),
-
+            (
+                vec!["virtualallocex".into()],
+                TechniqueId::new("T1055"),
+                0.75,
+            ),
+            (
+                vec!["createremotethread".into()],
+                TechniqueId::new("T1055"),
+                0.8,
+            ),
             // Privilege Escalation
-            (vec!["uac".into(), "bypass".into()], TechniqueId::new("T1548"), 0.8),
-            (vec!["sudo".into(), "abuse".into()], TechniqueId::new("T1548"), 0.7),
+            (
+                vec!["uac".into(), "bypass".into()],
+                TechniqueId::new("T1548"),
+                0.8,
+            ),
+            (
+                vec!["sudo".into(), "abuse".into()],
+                TechniqueId::new("T1548"),
+                0.7,
+            ),
             (vec!["setuid".into()], TechniqueId::new("T1548"), 0.6),
-
             // Discovery
             (vec!["systeminfo".into()], TechniqueId::new("T1082"), 0.7),
             (vec!["tasklist".into()], TechniqueId::new("T1057"), 0.7),
             (vec!["netstat".into()], TechniqueId::new("T1049"), 0.7),
-
             // Lateral Movement
             (vec!["psexec".into()], TechniqueId::new("T1021"), 0.85),
-            (vec!["wmi".into(), "remote".into()], TechniqueId::new("T1021"), 0.7),
-
+            (
+                vec!["wmi".into(), "remote".into()],
+                TechniqueId::new("T1021"),
+                0.7,
+            ),
             // C2
-            (vec!["curl".into(), "executable".into()], TechniqueId::new("T1105"), 0.7),
-            (vec!["wget".into(), "executable".into()], TechniqueId::new("T1105"), 0.7),
-            (vec!["certutil".into(), "urlcache".into()], TechniqueId::new("T1105"), 0.85),
-            (vec!["dns".into(), "tunnel".into()], TechniqueId::new("T1572"), 0.8),
-
+            (
+                vec!["curl".into(), "executable".into()],
+                TechniqueId::new("T1105"),
+                0.7,
+            ),
+            (
+                vec!["wget".into(), "executable".into()],
+                TechniqueId::new("T1105"),
+                0.7,
+            ),
+            (
+                vec!["certutil".into(), "urlcache".into()],
+                TechniqueId::new("T1105"),
+                0.85,
+            ),
+            (
+                vec!["dns".into(), "tunnel".into()],
+                TechniqueId::new("T1572"),
+                0.8,
+            ),
             // Ransomware
-            (vec!["vssadmin".into(), "delete".into()], TechniqueId::new("T1486"), 0.9),
-            (vec!["bcdedit".into(), "recoveryenabled".into(), "no".into()], TechniqueId::new("T1486"), 0.85),
-            (vec!["ransom".into(), "note".into()], TechniqueId::new("T1486"), 0.95),
+            (
+                vec!["vssadmin".into(), "delete".into()],
+                TechniqueId::new("T1486"),
+                0.9,
+            ),
+            (
+                vec!["bcdedit".into(), "recoveryenabled".into(), "no".into()],
+                TechniqueId::new("T1486"),
+                0.85,
+            ),
+            (
+                vec!["ransom".into(), "note".into()],
+                TechniqueId::new("T1486"),
+                0.95,
+            ),
             (vec![".locked".into()], TechniqueId::new("T1486"), 0.8),
             (vec![".encrypted".into()], TechniqueId::new("T1486"), 0.75),
-
             // Process Injection
-            (vec!["createremotethread".into()], TechniqueId::new("T1055"), 0.85),
-            (vec!["writeprocessmemory".into()], TechniqueId::new("T1055"), 0.8),
-            (vec!["ntmapviewofsection".into()], TechniqueId::new("T1055"), 0.8),
-
+            (
+                vec!["createremotethread".into()],
+                TechniqueId::new("T1055"),
+                0.85,
+            ),
+            (
+                vec!["writeprocessmemory".into()],
+                TechniqueId::new("T1055"),
+                0.8,
+            ),
+            (
+                vec!["ntmapviewofsection".into()],
+                TechniqueId::new("T1055"),
+                0.8,
+            ),
             // Webshell
-            (vec!["eval".into(), "base64_decode".into()], TechniqueId::new("T1505.003"), 0.8),
-            (vec!["<?php".into(), "shell_exec".into()], TechniqueId::new("T1505.003"), 0.85),
-            (vec!["cmd.exe".into(), "/c".into(), "whoami".into()], TechniqueId::new("T1059.003"), 0.7),
+            (
+                vec!["eval".into(), "base64_decode".into()],
+                TechniqueId::new("T1505.003"),
+                0.8,
+            ),
+            (
+                vec!["<?php".into(), "shell_exec".into()],
+                TechniqueId::new("T1505.003"),
+                0.85,
+            ),
+            (
+                vec!["cmd.exe".into(), "/c".into(), "whoami".into()],
+                TechniqueId::new("T1059.003"),
+                0.7,
+            ),
         ]
     }
 
@@ -128,7 +253,8 @@ impl MitreMapper {
             let all_match = keywords.iter().all(|kw| search_lower.contains(kw.as_str()));
             if all_match && !seen_techniques.contains(technique_id) {
                 if let Some(technique) = self.technique_db.get(technique_id) {
-                    let evidence: Vec<String> = keywords.iter()
+                    let evidence: Vec<String> = keywords
+                        .iter()
                         .filter(|kw| search_lower.contains(kw.as_str()))
                         .cloned()
                         .collect();
@@ -161,7 +287,7 @@ impl MitreMapper {
                 if !seen_techniques.contains(&parent_id) {
                     if let Some(technique) = self.technique_db.get(&parent_id) {
                         mappings.push(MitreMapping {
-                            technique_id: parent.0.to_string(),
+                            technique_id: parent.to_string(),
                             tactic: technique.tactic.name().to_string(),
                             confidence: 0.6,
                             evidence: vec!["inferred from sub-technique".into()],
@@ -173,7 +299,11 @@ impl MitreMapper {
             }
         }
 
-        mappings.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal));
+        mappings.sort_by(|a, b| {
+            b.confidence
+                .partial_cmp(&a.confidence)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         mappings
     }
 
@@ -251,7 +381,8 @@ impl MitreMapper {
     }
 
     pub fn get_techniques_by_tactic(&self, tactic: Tactic) -> Vec<&Technique> {
-        self.technique_db.values()
+        self.technique_db
+            .values()
             .filter(|t| t.tactic == tactic)
             .collect()
     }
@@ -263,7 +394,9 @@ impl MitreMapper {
     pub fn get_tactic_summary(&self) -> HashMap<String, usize> {
         let mut summary = HashMap::new();
         for technique in self.technique_db.values() {
-            *summary.entry(technique.tactic.name().to_string()).or_insert(0) += 1;
+            *summary
+                .entry(technique.tactic.name().to_string())
+                .or_insert(0) += 1;
         }
         summary
     }

@@ -1,8 +1,8 @@
-use crate::logger::{SecurityLogger, EventCategory, LogLevel};
 use crate::heuristic_engine::Action;
-use std::process::Command;
-use std::path::PathBuf;
+use crate::logger::{EventCategory, LogLevel, SecurityLogger};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContainmentAction {
@@ -122,7 +122,10 @@ impl ContainmentEngine {
             logger.warning(
                 EventCategory::Containment,
                 "containment",
-                &format!("Auto-kill disabled, would kill PID {} ({})", pid, process_name),
+                &format!(
+                    "Auto-kill disabled, would kill PID {} ({})",
+                    pid, process_name
+                ),
             );
             return ContainmentResult::Skipped;
         }
@@ -139,14 +142,10 @@ impl ContainmentEngine {
             .output();
 
         #[cfg(target_os = "linux")]
-        let result = Command::new("kill")
-            .args(["-9", &pid.to_string()])
-            .output();
+        let result = Command::new("kill").args(["-9", &pid.to_string()]).output();
 
         #[cfg(target_os = "macos")]
-        let result = Command::new("kill")
-            .args(["-9", &pid.to_string()])
-            .output();
+        let result = Command::new("kill").args(["-9", &pid.to_string()]).output();
 
         match result {
             Ok(output) => {
@@ -192,7 +191,10 @@ impl ContainmentEngine {
             logger.warning(
                 EventCategory::Containment,
                 "containment",
-                &format!("Auto-quarantine disabled, would quarantine PID {} ({})", pid, process_name),
+                &format!(
+                    "Auto-quarantine disabled, would quarantine PID {} ({})",
+                    pid, process_name
+                ),
             );
             return ContainmentResult::Skipped;
         }
@@ -247,7 +249,10 @@ impl ContainmentEngine {
         logger.warning(
             EventCategory::Containment,
             "containment",
-            &format!("ALERT: Suspicious process PID {} ({}) detected", pid, process_name),
+            &format!(
+                "ALERT: Suspicious process PID {} ({}) detected",
+                pid, process_name
+            ),
         );
         ContainmentResult::Success
     }
@@ -270,7 +275,10 @@ impl ContainmentEngine {
             std::fs::remove_file(&path)?;
             Ok(())
         } else {
-            Err(crate::error::CoreError::NotFound(format!("Quarantine entry not found: {}", filename)))
+            Err(crate::error::CoreError::NotFound(format!(
+                "Quarantine entry not found: {}",
+                filename
+            )))
         }
     }
 }

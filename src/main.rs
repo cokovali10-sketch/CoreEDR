@@ -1,4 +1,5 @@
 mod alert;
+#[cfg(feature = "behavioral-analysis")]
 mod behavioral;
 mod config;
 mod containment;
@@ -7,15 +8,20 @@ mod hash_engine;
 mod heuristic_engine;
 mod logger;
 mod logging;
+#[cfg(feature = "ml")]
 mod ml;
+#[cfg(feature = "file-monitoring")]
 mod monitoring;
+#[cfg(feature = "network-monitoring")]
 mod network;
 mod platform;
 mod process_monitor;
 mod quarantine;
 mod rule_engine;
 mod scanner;
+#[cfg(feature = "tamper-protection")]
 mod tamper;
+#[cfg(feature = "yara")]
 mod yara;
 
 #[cfg(feature = "api")]
@@ -31,7 +37,11 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 #[derive(clap::Parser)]
-#[command(name = "coreedr", version = "0.2.0", about = "Production-grade EDR/Antivirus Engine")]
+#[command(
+    name = "coreedr",
+    version = "0.2.0",
+    about = "Production-grade EDR/Antivirus Engine"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -74,7 +84,11 @@ enum Commands {
     /// Check for updates
     #[cfg(feature = "auto-update")]
     Update {
-        #[arg(short, long, default_value = "https://api.coreedr.example.com/manifest.json")]
+        #[arg(
+            short,
+            long,
+            default_value = "https://api.coreedr.example.com/manifest.json"
+        )]
         manifest_url: String,
     },
 }
@@ -94,7 +108,8 @@ fn print_banner() {
     );
     println!("  Production-grade EDR/Antivirus Engine");
     println!("  Real-time monitoring | Heuristic + YARA + ML | Threat containment");
-    println!("  Features: api={}, yara={}, ml={}, quarantine-encrypt={}\n",
+    println!(
+        "  Features: api={}, yara={}, ml={}, quarantine-encrypt={}\n",
         cfg!(feature = "api"),
         cfg!(feature = "yara"),
         cfg!(feature = "ml"),
@@ -120,7 +135,10 @@ fn print_report(report: &scanner::ScanReport) {
     println!("║                    SCAN REPORT                          ║");
     println!("╠══════════════════════════════════════════════════════════╣");
     println!("║ Scan #:        {:<40}║", report.scan_number);
-    println!("║ Timestamp:     {:<40}║", report.timestamp.format("%Y-%m-%d %H:%M:%S UTC"));
+    println!(
+        "║ Timestamp:     {:<40}║",
+        report.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
+    );
     println!("║ Duration:      {:<38}ms║", report.duration_ms);
     println!("╠══════════════════════════════════════════════════════════╣");
     println!("║ PROCESSES                                               ║");
@@ -140,22 +158,32 @@ fn print_report(report: &scanner::ScanReport) {
     println!("║   Total:         {:<38}║", report.alert_stats.total);
     println!("║   Critical:      {:<38}║", report.alert_stats.critical);
     println!("║   High:          {:<38}║", report.alert_stats.high);
-    println!("║   Acknowledged:  {:<38}║", report.alert_stats.acknowledged);
+    println!(
+        "║   Acknowledged:  {:<38}║",
+        report.alert_stats.acknowledged
+    );
     println!("╠══════════════════════════════════════════════════════════╣");
     println!("║ LOGGING                                                 ║");
-    println!("║   Total events:  {:<38}║", report.logger_stats.total_events);
-    println!("║   Errors:        {:<38}║", report.logger_stats.error_count);
-    println!("║   Critical:      {:<38}║", report.logger_stats.critical_count);
+    println!(
+        "║   Total events:  {:<38}║",
+        report.logger_stats.total_events
+    );
+    println!(
+        "║   Errors:        {:<38}║",
+        report.logger_stats.error_count
+    );
+    println!(
+        "║   Critical:      {:<38}║",
+        report.logger_stats.critical_count
+    );
     println!("╚══════════════════════════════════════════════════════════╝");
 
     if !report.containment_actions.is_empty() {
         println!("\n[*] Containment Actions:");
         for action in &report.containment_actions {
-            println!("  - PID {} ({}): {:?} -> {:?}",
-                action.pid,
-                action.process_name,
-                action.action_type,
-                action.result
+            println!(
+                "  - PID {} ({}): {:?} -> {:?}",
+                action.pid, action.process_name, action.action_type, action.result
             );
         }
     }
@@ -197,15 +225,13 @@ async fn main() {
             println!("[*] Running single scan...\n");
 
             match Scanner::new(config) {
-                Ok(mut scanner) => {
-                    match scanner.run_scan() {
-                        Ok(report) => print_report(&report),
-                        Err(e) => {
-                            eprintln!("[!] Scan error: {}", e);
-                            process::exit(1);
-                        }
+                Ok(mut scanner) => match scanner.run_scan() {
+                    Ok(report) => print_report(&report),
+                    Err(e) => {
+                        eprintln!("[!] Scan error: {}", e);
+                        process::exit(1);
                     }
-                }
+                },
                 Err(e) => {
                     eprintln!("[!] Failed to initialize scanner: {}", e);
                     process::exit(1);

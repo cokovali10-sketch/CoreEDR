@@ -1,7 +1,7 @@
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use chrono::{DateTime, Utc, Duration};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CorrelatedEvent {
@@ -158,7 +158,12 @@ impl Incident {
         }
     }
 
-    pub fn transition(&mut self, next_state: IncidentState, actor: String, notes: Option<String>) -> Result<(), String> {
+    pub fn transition(
+        &mut self,
+        next_state: IncidentState,
+        actor: String,
+        notes: Option<String>,
+    ) -> Result<(), String> {
         if !self.state.can_transition_to(&next_state) {
             return Err(format!(
                 "Invalid transition: {:?} -> {:?}",
@@ -240,7 +245,9 @@ impl CorrelationEngine {
     }
 
     fn correlate_event(&mut self, event: &CorrelatedEvent) {
-        let recent_events: Vec<CorrelatedEvent> = self.events.iter()
+        let recent_events: Vec<CorrelatedEvent> = self
+            .events
+            .iter()
             .filter(|e| {
                 let time_diff = event.timestamp.signed_duration_since(e.timestamp);
                 time_diff <= self.time_window && time_diff >= Duration::zero()
@@ -287,10 +294,18 @@ impl CorrelationEngine {
             if a_pid == b_pid {
                 return true;
             }
-            if self.process_tree.get(&a_pid).map_or(false, |children| children.contains(&b_pid)) {
+            if self
+                .process_tree
+                .get(&a_pid)
+                .map_or(false, |children| children.contains(&b_pid))
+            {
                 return true;
             }
-            if self.process_tree.get(&b_pid).map_or(false, |children| children.contains(&a_pid)) {
+            if self
+                .process_tree
+                .get(&b_pid)
+                .map_or(false, |children| children.contains(&a_pid))
+            {
                 return true;
             }
         }
@@ -299,7 +314,11 @@ impl CorrelationEngine {
             return true;
         }
 
-        let time_diff = a.timestamp.signed_duration_since(b.timestamp).num_seconds().abs();
+        let time_diff = a
+            .timestamp
+            .signed_duration_since(b.timestamp)
+            .num_seconds()
+            .abs();
         if time_diff < 30 {
             if let (Some(a_user), Some(b_user)) = (&a.user, &b.user) {
                 if a_user == b_user {
@@ -361,13 +380,19 @@ impl CorrelationEngine {
     }
 
     pub fn get_events_by_process(&self, pid: u32) -> Vec<&CorrelatedEvent> {
-        self.events.iter()
+        self.events
+            .iter()
             .filter(|e| e.process_id == Some(pid))
             .collect()
     }
 
-    pub fn get_events_in_timerange(&self, start: DateTime<Utc>, end: DateTime<Utc>) -> Vec<&CorrelatedEvent> {
-        self.events.iter()
+    pub fn get_events_in_timerange(
+        &self,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    ) -> Vec<&CorrelatedEvent> {
+        self.events
+            .iter()
             .filter(|e| e.timestamp >= start && e.timestamp <= end)
             .collect()
     }
@@ -375,18 +400,19 @@ impl CorrelationEngine {
     pub fn get_stats(&self) -> CorrelationStats {
         let mut event_type_counts = HashMap::new();
         for event in &self.events {
-            *event_type_counts.entry(format!("{:?}", event.event_type)).or_insert(0) += 1;
+            *event_type_counts
+                .entry(format!("{:?}", event.event_type))
+                .or_insert(0) += 1;
         }
 
         CorrelationStats {
             total_events: self.events.len(),
             total_chains: self.chains.len(),
             event_type_counts,
-            chains_by_severity: self.chains.values()
-                .fold(HashMap::new(), |mut acc, chain| {
-                    *acc.entry(chain.severity.to_string()).or_insert(0) += 1;
-                    acc
-                }),
+            chains_by_severity: self.chains.values().fold(HashMap::new(), |mut acc, chain| {
+                *acc.entry(chain.severity.to_string()).or_insert(0) += 1;
+                acc
+            }),
         }
     }
 
@@ -395,7 +421,12 @@ impl CorrelationEngine {
         self.events.retain(|e| e.timestamp > cutoff);
     }
 
-    pub fn create_incident(&mut self, title: String, description: String, severity: Severity) -> Incident {
+    pub fn create_incident(
+        &mut self,
+        title: String,
+        description: String,
+        severity: Severity,
+    ) -> Incident {
         let incident = Incident::new(title, description, severity);
         self.incidents.insert(incident.id.clone(), incident.clone());
         incident
@@ -410,7 +441,8 @@ impl CorrelationEngine {
     }
 
     pub fn get_active_incidents(&self) -> Vec<&Incident> {
-        self.incidents.values()
+        self.incidents
+            .values()
             .filter(|i| !i.state.is_terminal())
             .collect()
     }
@@ -429,7 +461,11 @@ impl CorrelationEngine {
         }
     }
 
-    pub fn link_chain_to_incident(&mut self, incident_id: &str, chain_id: &str) -> Result<(), String> {
+    pub fn link_chain_to_incident(
+        &mut self,
+        incident_id: &str,
+        chain_id: &str,
+    ) -> Result<(), String> {
         if let Some(incident) = self.incidents.get_mut(incident_id) {
             if !incident.chain_ids.contains(&chain_id.to_string()) {
                 incident.chain_ids.push(chain_id.to_string());
@@ -448,7 +484,9 @@ impl CorrelationEngine {
 
         let mut by_severity = HashMap::new();
         for incident in self.incidents.values() {
-            *by_severity.entry(incident.severity.to_string()).or_insert(0) += 1;
+            *by_severity
+                .entry(incident.severity.to_string())
+                .or_insert(0) += 1;
         }
 
         IncidentStats {

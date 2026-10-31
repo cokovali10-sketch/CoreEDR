@@ -64,7 +64,11 @@ impl AntiKill {
 
         thread::spawn(move || {
             while running.load(Ordering::Relaxed) {
-                if detect_debugger() {
+                #[cfg(target_os = "windows")]
+                let dbg = detect_debugger_windows();
+                #[cfg(not(target_os = "windows"))]
+                let dbg = false;
+                if dbg {
                     eprintln!("[TamperGuard] Debugger detected — terminating process");
                     std::process::exit(1);
                 }
@@ -85,8 +89,7 @@ impl AntiKill {
 
         thread::spawn(move || {
             thread::sleep(Duration::from_secs(2));
-            let _ = std::process::Command::new(exe_path)
-                .spawn();
+            let _ = std::process::Command::new(exe_path).spawn();
         });
 
         Ok(())
@@ -105,7 +108,10 @@ fn detect_debugger_windows() -> bool {
 
     extern "system" {
         fn IsDebuggerPresent() -> i32;
-        fn CheckRemoteDebuggerPresent(h_process: *mut std::ffi::c_void, is_debugger: *mut i32) -> i32;
+        fn CheckRemoteDebuggerPresent(
+            h_process: *mut std::ffi::c_void,
+            is_debugger: *mut i32,
+        ) -> i32;
         fn GetCurrentProcess() -> *mut std::ffi::c_void;
     }
 
@@ -127,7 +133,10 @@ fn detect_debugger_windows() -> bool {
 #[cfg(target_os = "linux")]
 fn detect_debugger_linux() -> bool {
     std::fs::read_to_string("/proc/self/status")
-        .map(|s| s.lines().any(|l| l.starts_with("TracerPid:") && !l.ends_with("TracerPid:\t0")))
+        .map(|s| {
+            s.lines()
+                .any(|l| l.starts_with("TracerPid:") && !l.ends_with("TracerPid:\t0"))
+        })
         .unwrap_or(false)
 }
 

@@ -1,7 +1,4 @@
-use axum::{
-    extract::State,
-    Json,
-};
+use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -32,11 +29,9 @@ pub struct UpdateConfigRequest {
     pub update_interval_hours: Option<u64>,
 }
 
-pub async fn get_config(
-    State(state): State<AppState>,
-) -> Result<Json<Value>, ApiError> {
+pub async fn get_config(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
     let config = state.config.read().await;
-    
+
     Ok(Json(json!(ConfigResponse {
         scan_paths: config.scan_paths.clone(),
         scan_interval_seconds: config.scan_interval_seconds,
@@ -54,7 +49,7 @@ pub async fn update_config(
     Json(request): Json<UpdateConfigRequest>,
 ) -> Result<Json<Value>, ApiError> {
     let mut config = state.config.write().await;
-    
+
     if let Some(paths) = request.scan_paths {
         config.scan_paths = paths;
     }
@@ -79,10 +74,11 @@ pub async fn update_config(
     if let Some(interval) = request.update_interval_hours {
         config.update_interval_hours = interval;
     }
-    
-    config.save()
+
+    config
+        .save()
         .map_err(|e| ApiError::InternalError(format!("Failed to save config: {}", e)))?;
-    
+
     Ok(Json(json!({
         "status": "updated",
         "message": "Configuration updated successfully"

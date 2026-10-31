@@ -54,12 +54,12 @@ impl IntoResponse for ApiError {
             ApiError::InternalError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             ApiError::Conflict(msg) => (StatusCode::CONFLICT, msg),
         };
-        
+
         let body = Json(json!({
             "error": message,
             "status": status.as_u16(),
         }));
-        
+
         (status, body).into_response()
     }
 }

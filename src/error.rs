@@ -64,6 +64,27 @@ pub enum CoreError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("Crypto error: {0}")]
+    CryptoError(String),
+
+    #[error("Integrity error: {0}")]
+    IntegrityError(String),
+
+    #[error("Network error: {0}")]
+    NetworkError(String),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("Already exists: {0}")]
+    AlreadyExists(String),
+
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+
+    #[error("IO error: {0}")]
+    IoError(String),
 }
 
 impl From<Box<dyn std::error::Error>> for CoreError {

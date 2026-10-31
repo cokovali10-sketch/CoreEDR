@@ -54,10 +54,19 @@ mime_guess = { version = "2", optional = true }
 # Config hot-reload
 notify = { version = "7", optional = true }
 
+# Auto-update (Phase 13)
+reqwest = { version = "0.12", features = ["json", "stream"], optional = true }
+semver = { version = "1", optional = true }
+futures = { version = "0.3", optional = true }
+hmac = { version = "0.12", optional = true }
+
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.58", features = [
+    "Win32_Foundation",
     "Win32_System_Threading",
-    "Win32_ToolHelp32",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Memory",
     "Win32_Security",
     "Win32_NetworkManagement_IpHelper",
     "Win32_System_SystemInformation",
@@ -72,10 +81,11 @@ inotify = { version = "0.11", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
+criterion = "0.5"
 
 [features]
 default = ["full"]
-full = ["api", "yara", "ml", "quarantine-encrypt", "file-monitoring", "network-monitoring", "behavioral-analysis", "config-watch", "auto-update", "web-ui", "service"]
+full = ["yara", "ml", "quarantine-encrypt", "file-monitoring", "network-monitoring", "behavioral-analysis", "config-watch", "auto-update", "web-ui", "service", "tamper-protection"]
 
 api = ["dep:axum", "dep:tower", "dep:tower-http"]
 yara = ["dep:yara-x"]
@@ -85,10 +95,27 @@ file-monitoring = ["dep:notify"]
 network-monitoring = []
 behavioral-analysis = []
 config-watch = ["dep:notify"]
-auto-update = []
+auto-update = ["dep:reqwest", "dep:semver", "dep:futures", "dep:hmac"]
 web-ui = ["dep:rust-embed", "dep:mime_guess"]
 service = ["dep:windows-service"]
-
+tamper-protection = []
 [[bin]]
 name = "coreedr"
 path = "src/main.rs"
+
+[[bench]]
+name = "detection_benchmarks"
+harness = false
+
+[[test]]
+name = "api_tests"
+path = "tests/api_tests.rs"
+required-features = ["api"]
+
+[[test]]
+name = "correlation_tests"
+path = "tests/correlation_tests.rs"
+
+[[test]]
+name = "mitre_tests"
+path = "tests/mitre_tests.rs"

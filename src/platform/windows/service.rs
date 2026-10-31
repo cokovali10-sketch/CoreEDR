@@ -3,14 +3,16 @@ use crate::platform::ServiceOps;
 use std::ffi::OsString;
 use std::time::Duration;
 use windows_service::service::*;
-use windows_service::service_control_handler::{self, ServiceControlHandlerResult, ServiceStatus};
+use windows_service::service::{ServiceControl, ServiceStatus};
+use windows_service::service_control_handler::{self, ServiceControlHandlerResult};
 use windows_service::service_manager::{ServiceManager, ServiceManagerAccess};
 
 pub struct WindowsServiceOps;
 
 const SERVICE_NAME: &str = "CoreEDR";
 const SERVICE_DISPLAY_NAME: &str = "CoreEDR Endpoint Detection and Response";
-const SERVICE_DESCRIPTION: &str = "Real-time endpoint detection, threat analysis, and containment service";
+const SERVICE_DESCRIPTION: &str =
+    "Real-time endpoint detection, threat analysis, and containment service";
 
 impl ServiceOps for WindowsServiceOps {
     fn install_service() -> Result<()> {
@@ -32,7 +34,6 @@ impl ServiceOps for WindowsServiceOps {
             dependencies: vec![],
             account_name: None,
             account_password: None,
-            ..Default::default()
         };
 
         let service = manager
@@ -47,11 +48,9 @@ impl ServiceOps for WindowsServiceOps {
     }
 
     fn uninstall_service() -> Result<()> {
-        let manager = ServiceManager::local_computer(
-            None::<&str>,
-            ServiceManagerAccess::CONNECT,
-        )
-        .map_err(|e| CoreError::Platform(format!("Failed to open service manager: {e}")))?;
+        let manager =
+            ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
+                .map_err(|e| CoreError::Platform(format!("Failed to open service manager: {e}")))?;
 
         let service = manager
             .open_service(SERVICE_NAME, ServiceAccess::ALL_ACCESS)
@@ -77,11 +76,9 @@ impl ServiceOps for WindowsServiceOps {
     }
 
     fn start_service() -> Result<()> {
-        let manager = ServiceManager::local_computer(
-            None::<&str>,
-            ServiceManagerAccess::CONNECT,
-        )
-        .map_err(|e| CoreError::Platform(format!("Failed to open service manager: {e}")))?;
+        let manager =
+            ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
+                .map_err(|e| CoreError::Platform(format!("Failed to open service manager: {e}")))?;
 
         let service = manager
             .open_service(SERVICE_NAME, ServiceAccess::START)
@@ -95,11 +92,9 @@ impl ServiceOps for WindowsServiceOps {
     }
 
     fn stop_service() -> Result<()> {
-        let manager = ServiceManager::local_computer(
-            None::<&str>,
-            ServiceManagerAccess::CONNECT,
-        )
-        .map_err(|e| CoreError::Platform(format!("Failed to open service manager: {e}")))?;
+        let manager =
+            ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
+                .map_err(|e| CoreError::Platform(format!("Failed to open service manager: {e}")))?;
 
         let service = manager
             .open_service(SERVICE_NAME, ServiceAccess::STOP)
@@ -147,11 +142,9 @@ impl ServiceOps for WindowsServiceOps {
     }
 
     fn is_service_running() -> Result<bool> {
-        let manager = ServiceManager::local_computer(
-            None::<&str>,
-            ServiceManagerAccess::CONNECT,
-        )
-        .map_err(|e| CoreError::Platform(format!("Failed to open service manager: {e}")))?;
+        let manager =
+            ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
+                .map_err(|e| CoreError::Platform(format!("Failed to open service manager: {e}")))?;
 
         let service = manager
             .open_service(SERVICE_NAME, ServiceAccess::QUERY_STATUS)
@@ -184,7 +177,7 @@ pub fn run_service() -> Result<()> {
         .map_err(|e| CoreError::Platform(format!("Failed to register control handler: {e}")))?;
 
     let _ = status_handle
-        .set_service_status(&ServiceStatus {
+        .set_service_status(ServiceStatus {
             service_type: ServiceType::OWN_PROCESS,
             current_state: ServiceState::Running,
             controls_accepted: ServiceControlAccept::STOP,
@@ -198,16 +191,15 @@ pub fn run_service() -> Result<()> {
     loop {
         match rx.recv_timeout(Duration::from_secs(5)) {
             Ok(ServiceControl::Stop) => {
-                let _ = status_handle
-                    .set_service_status(&ServiceStatus {
-                        service_type: ServiceType::OWN_PROCESS,
-                        current_state: ServiceState::StopPending,
-                        controls_accepted: ServiceControlAccept::empty(),
-                        exit_code: ServiceExitCode::ServiceSpecific(0),
-                        checkpoint: 0,
-                        wait_hint: Duration::from_secs(10),
-                        process_id: None,
-                    });
+                let _ = status_handle.set_service_status(ServiceStatus {
+                    service_type: ServiceType::OWN_PROCESS,
+                    current_state: ServiceState::StopPending,
+                    controls_accepted: ServiceControlAccept::empty(),
+                    exit_code: ServiceExitCode::ServiceSpecific(0),
+                    checkpoint: 0,
+                    wait_hint: Duration::from_secs(10),
+                    process_id: None,
+                });
                 break;
             }
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
@@ -216,16 +208,15 @@ pub fn run_service() -> Result<()> {
         }
     }
 
-    let _ = status_handle
-        .set_service_status(&ServiceStatus {
-            service_type: ServiceType::OWN_PROCESS,
-            current_state: ServiceState::Stopped,
-            controls_accepted: ServiceControlAccept::empty(),
-            exit_code: ServiceExitCode::ServiceSpecific(0),
-            checkpoint: 0,
-            wait_hint: Duration::default(),
-            process_id: None,
-        });
+    let _ = status_handle.set_service_status(ServiceStatus {
+        service_type: ServiceType::OWN_PROCESS,
+        current_state: ServiceState::Stopped,
+        controls_accepted: ServiceControlAccept::empty(),
+        exit_code: ServiceExitCode::ServiceSpecific(0),
+        checkpoint: 0,
+        wait_hint: Duration::default(),
+        process_id: None,
+    });
 
     Ok(())
 }

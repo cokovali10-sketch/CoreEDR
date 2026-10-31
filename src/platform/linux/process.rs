@@ -93,6 +93,8 @@ fn read_process_info(pid: u32) -> Result<ProcessInfo> {
         start_time: Utc::now(),
         hash: None,
         risk_score: 0,
+        chain_depth: 0,
+        root_pid: ppid,
     })
 }
 

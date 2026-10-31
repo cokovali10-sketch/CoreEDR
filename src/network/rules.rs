@@ -124,7 +124,8 @@ impl NetworkRuleEngine {
     }
 
     fn check_c2_beacon(&mut self, conn: &Connection) -> Option<NetworkAlert> {
-        if conn.protocol != Protocol::Tcp || conn.state != crate::network::ConnectionState::Established
+        if conn.protocol != Protocol::Tcp
+            || conn.state != crate::network::ConnectionState::Established
         {
             return None;
         }

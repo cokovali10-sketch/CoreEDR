@@ -58,11 +58,25 @@ impl FeatureVector {
 
     pub fn feature_names() -> Vec<&'static str> {
         vec![
-            "entropy", "file_size", "string_ratio", "import_count", "section_count",
-            "has_debug_info", "has_overlay", "timestamp_anomaly", "high_entropy_sections",
-            "suspicious_imports", "pe_characteristics", "subsystem", "dll_characteristics",
-            "compilation_timestamp", "rich_header_present", "tls_callbacks",
-            "resources_count", "avg_section_entropy", "max_section_entropy",
+            "entropy",
+            "file_size",
+            "string_ratio",
+            "import_count",
+            "section_count",
+            "has_debug_info",
+            "has_overlay",
+            "timestamp_anomaly",
+            "high_entropy_sections",
+            "suspicious_imports",
+            "pe_characteristics",
+            "subsystem",
+            "dll_characteristics",
+            "compilation_timestamp",
+            "rich_header_present",
+            "tls_callbacks",
+            "resources_count",
+            "avg_section_entropy",
+            "max_section_entropy",
             "suspicious_strings_count",
         ]
     }
@@ -147,7 +161,8 @@ fn compute_string_ratio(data: &[u8]) -> f64 {
         return 0.0;
     }
 
-    let printable = data.iter()
+    let printable = data
+        .iter()
         .filter(|&&b| (0x20..=0x7E).contains(&b) || b == 0x09 || b == 0x0A || b == 0x0D)
         .count();
 
@@ -207,11 +222,21 @@ fn analyze_sections(data: &[u8]) -> (usize, f64, f64, usize) {
 
 fn analyze_imports(data: &[u8]) -> (usize, usize) {
     let suspicious_names: &[&str] = &[
-        "VirtualAlloc", "VirtualProtect", "WriteProcessMemory",
-        "CreateRemoteThread", "NtUnmapViewOfSection", "IsDebuggerPresent",
-        "CheckRemoteDebuggerPresent", "GetTickCount", "Sleep",
-        "URLDownloadToFile", "WinHttpOpen", "InternetOpenA",
-        "CryptEncrypt", "CryptDecrypt", "OpenProcess",
+        "VirtualAlloc",
+        "VirtualProtect",
+        "WriteProcessMemory",
+        "CreateRemoteThread",
+        "NtUnmapViewOfSection",
+        "IsDebuggerPresent",
+        "CheckRemoteDebuggerPresent",
+        "GetTickCount",
+        "Sleep",
+        "URLDownloadToFile",
+        "WinHttpOpen",
+        "InternetOpenA",
+        "CryptEncrypt",
+        "CryptDecrypt",
+        "OpenProcess",
     ];
 
     if data.len() < 0x40 || data[0] != b'M' || data[1] != b'Z' {
@@ -354,8 +379,7 @@ fn get_compilation_timestamp(data: &[u8]) -> u32 {
 }
 
 fn check_rich_header(data: &[u8]) -> bool {
-    data.len() >= 0x80
-        && data.windows(4).any(|w| w == *b"Rich")
+    data.len() >= 0x80 && data.windows(4).any(|w| w == *b"Rich")
 }
 
 fn count_tls_callbacks(data: &[u8]) -> usize {
@@ -403,16 +427,33 @@ fn count_resources(data: &[u8]) -> usize {
 
 fn count_suspicious_strings(data: &[u8]) -> usize {
     let suspicious = [
-        "cmd.exe", "powershell", "wscript", "cscript", "mshta",
-        "regsvr32", "rundll32", "certutil", "bitsadmin", "wmic",
-        "net.exe", "net1.exe", "sc.exe", "at.exe",
-        "schtasks", "hkey_local_machine", "hkey_current_user",
-        "/etc/passwd", "/etc/shadow", ".ssh/",
-        "mimikatz", "lazagne", "procdump",
+        "cmd.exe",
+        "powershell",
+        "wscript",
+        "cscript",
+        "mshta",
+        "regsvr32",
+        "rundll32",
+        "certutil",
+        "bitsadmin",
+        "wmic",
+        "net.exe",
+        "net1.exe",
+        "sc.exe",
+        "at.exe",
+        "schtasks",
+        "hkey_local_machine",
+        "hkey_current_user",
+        "/etc/passwd",
+        "/etc/shadow",
+        ".ssh/",
+        "mimikatz",
+        "lazagne",
+        "procdump",
     ];
 
     let text = String::from_utf8_lossy(data).to_lowercase();
-    suspicious.iter().filter(|s| text.contains(s)).count()
+    suspicious.iter().filter(|s| text.contains(**s)).count()
 }
 
 fn read_u16_le(data: &[u8], offset: usize) -> u16 {
@@ -426,5 +467,10 @@ fn read_u32_le(data: &[u8], offset: usize) -> u32 {
     if offset + 4 > data.len() {
         return 0;
     }
-    u32::from_le_bytes([data[offset], data[offset + 1], data[offset + 2], data[offset + 3]])
+    u32::from_le_bytes([
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
+    ])
 }

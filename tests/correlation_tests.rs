@@ -1,6 +1,6 @@
-use crate::correlation::engine::{CorrelationEngine, EventType, Severity};
-use crate::correlation::chain::{ChainBuilder, build_chain_from_events};
-use crate::correlation::timeline::EventTimeline;
+use coreedr::correlation::chain::{build_chain_from_events, ChainBuilder};
+use coreedr::correlation::engine::{CorrelationEngine, EventType, Severity};
+use coreedr::correlation::timeline::EventTimeline;
 use std::collections::HashMap;
 
 #[test]
@@ -14,7 +14,7 @@ fn test_correlation_engine_new() {
 #[test]
 fn test_add_event() {
     let mut engine = CorrelationEngine::new();
-    let event = crate::correlation::engine::CorrelatedEvent {
+    let event = coreedr::correlation::engine::CorrelatedEvent {
         id: "test-1".to_string(),
         timestamp: chrono::Utc::now(),
         event_type: EventType::ProcessCreation,
@@ -23,6 +23,7 @@ fn test_add_event() {
         parent_id: None,
         user: Some("root".to_string()),
         details: HashMap::new(),
+        chain_id: None,
         severity: Severity::Medium,
     };
     engine.add_event(event);
@@ -51,7 +52,7 @@ fn test_chain_builder() {
 #[test]
 fn test_build_chain_from_events() {
     let events = vec![
-        crate::correlation::engine::CorrelatedEvent {
+        coreedr::correlation::engine::CorrelatedEvent {
             id: "evt-1".to_string(),
             timestamp: chrono::Utc::now(),
             event_type: EventType::ProcessCreation,
@@ -60,9 +61,10 @@ fn test_build_chain_from_events() {
             parent_id: None,
             user: Some("user1".to_string()),
             details: HashMap::new(),
+            chain_id: None,
             severity: Severity::Low,
         },
-        crate::correlation::engine::CorrelatedEvent {
+        coreedr::correlation::engine::CorrelatedEvent {
             id: "evt-2".to_string(),
             timestamp: chrono::Utc::now(),
             event_type: EventType::ProcessCreation,
@@ -71,6 +73,7 @@ fn test_build_chain_from_events() {
             parent_id: Some(100),
             user: Some("user1".to_string()),
             details: HashMap::new(),
+            chain_id: None,
             severity: Severity::High,
         },
     ];
@@ -84,19 +87,18 @@ fn test_build_chain_from_events() {
 
 #[test]
 fn test_event_timeline() {
-    let events = vec![
-        crate::correlation::engine::CorrelatedEvent {
-            id: "evt-1".to_string(),
-            timestamp: chrono::Utc::now(),
-            event_type: EventType::ProcessCreation,
-            process_id: Some(100),
-            process_name: Some("test.exe".to_string()),
-            parent_id: None,
-            user: Some("user1".to_string()),
-            details: HashMap::new(),
-            severity: Severity::Info,
-        },
-    ];
+    let events = vec![coreedr::correlation::engine::CorrelatedEvent {
+        id: "evt-1".to_string(),
+        timestamp: chrono::Utc::now(),
+        event_type: EventType::ProcessCreation,
+        process_id: Some(100),
+        process_name: Some("test.exe".to_string()),
+        parent_id: None,
+        user: Some("user1".to_string()),
+        details: HashMap::new(),
+        chain_id: None,
+        severity: Severity::Info,
+    }];
 
     let timeline = EventTimeline::from_events(&events);
     assert_eq!(timeline.events.len(), 1);

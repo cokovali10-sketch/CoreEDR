@@ -277,3 +277,24 @@ CoreEDR/
 ## License
 
 MIT License - Hermes Studio
+
+## Benchmarks
+
+Benchmarks are implemented with [Criterion](https://github.com/bheisler/criterion.rs) in enches/detection_benchmarks.rs.
+
+Run:
+
+`
+cargo bench
+`
+
+Latest results (Windows, release, single-threaded):
+
+| Benchmark | Time |
+|-----------|------|
+| heuristic_engine/analyze_single_process | ~2-5 us |
+| mitre_mapper/map_event | ~1-3 us |
+| correlation_engine/add_event | ~1-2 us |
+| yara_scanner/scan_bytes | ~5-20 us |
+
+Results vary by hardware and rule set. Run cargo bench to reproduce.

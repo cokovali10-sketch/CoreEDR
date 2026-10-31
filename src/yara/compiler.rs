@@ -5,23 +5,12 @@ use super::YaraManager;
 
 impl YaraManager {
     pub fn new() -> Self {
-        Self {
-            rules: Vec::new(),
-        }
+        Self { rules: Vec::new() }
     }
 
     pub fn compile_rules(&mut self, source: &str) -> Result<()> {
-        let mut compiler = yara_x::Compiler::new()
-            .map_err(|e| CoreError::Yara(format!("Failed to create compiler: {}", e)))?;
-
-        compiler
-            .add_rules(source.as_bytes())
-            .map_err(|e| CoreError::Yara(format!("Failed to add rules: {}", e)))?;
-
-        let compiled = compiler
-            .compile_rules()
+        let compiled = yara_x::compile(source)
             .map_err(|e| CoreError::Yara(format!("Failed to compile rules: {}", e)))?;
-
         self.rules.push(compiled);
         Ok(())
     }
@@ -49,7 +38,11 @@ impl YaraManager {
         let mut compiled_count = 0u32;
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map(|e| e == "yar" || e == "yara").unwrap_or(false) {
+            if path
+                .extension()
+                .map(|e| e == "yar" || e == "yara")
+                .unwrap_or(false)
+            {
                 match self.compile_rules_from_file(&path) {
                     Ok(()) => compiled_count += 1,
                     Err(e) => {

@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
-use std::fs;
 use crate::error::{CoreError, Result};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 pub struct LogRotation {
     max_size_mb: u64,
@@ -29,8 +29,7 @@ impl LogRotation {
         let mut rotated = 0;
 
         if self.log_path.exists() {
-            let metadata = fs::metadata(&self.log_path)
-                .map_err(|e| CoreError::Io(e))?;
+            let metadata = fs::metadata(&self.log_path).map_err(|e| CoreError::Io(e))?;
             let size_mb = metadata.len() / (1024 * 1024);
 
             if size_mb >= self.max_size_mb {
@@ -50,20 +49,22 @@ impl LogRotation {
         }
 
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-        let extension = self.log_path.extension()
+        let extension = self
+            .log_path
+            .extension()
             .map(|e| format!(".{}", e.to_string_lossy()))
             .unwrap_or_default();
-        let stem = self.log_path.file_stem()
+        let stem = self
+            .log_path
+            .file_stem()
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_default();
-        let parent = self.log_path.parent()
-            .unwrap_or_else(|| Path::new("."));
+        let parent = self.log_path.parent().unwrap_or_else(|| Path::new("."));
 
         let rotated_name = format!("{}_{timestamp}{}", stem, extension);
         let rotated_path = parent.join(rotated_name);
 
-        fs::rename(&self.log_path, &rotated_path)
-            .map_err(|e| CoreError::Io(e))?;
+        fs::rename(&self.log_path, &rotated_path).map_err(|e| CoreError::Io(e))?;
 
         Ok(())
     }
@@ -74,11 +75,15 @@ impl LogRotation {
             None => return Ok(0),
         };
 
-        let stem = self.log_path.file_stem()
+        let stem = self
+            .log_path
+            .file_stem()
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_default();
 
-        let extension = self.log_path.extension()
+        let extension = self
+            .log_path
+            .extension()
             .map(|e| e.to_string_lossy().to_string())
             .unwrap_or_default();
 
@@ -89,13 +94,24 @@ impl LogRotation {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    if name.starts_with(&stem) && name != self.log_path.file_name().and_then(|n| n.to_str()).unwrap_or("") {
+                    if name.starts_with(&stem)
+                        && name
+                            != self
+                                .log_path
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("")
+                    {
                         if let Ok(metadata) = fs::metadata(&path) {
                             if let Ok(modified) = metadata.modified() {
-                                if let Ok(modified_time) = modified.duration_since(std::time::UNIX_EPOCH) {
+                                if let Ok(modified_time) =
+                                    modified.duration_since(std::time::UNIX_EPOCH)
+                                {
                                     let modified_chrono = chrono::DateTime::from_timestamp(
-                                        modified_time.as_secs() as i64, 0
-                                    ).unwrap_or_default();
+                                        modified_time.as_secs() as i64,
+                                        0,
+                                    )
+                                    .unwrap_or_default();
 
                                     if modified_chrono < cutoff {
                                         fs::remove_file(&path).ok();
@@ -122,14 +138,23 @@ impl LogRotation {
         }
 
         let parent = self.log_path.parent().unwrap_or_else(|| Path::new("."));
-        let stem = self.log_path.file_stem()
+        let stem = self
+            .log_path
+            .file_stem()
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_default();
 
         if let Ok(entries) = fs::read_dir(parent) {
             for entry in entries.flatten() {
                 if let Some(name) = entry.file_name().to_str() {
-                    if name.starts_with(&stem) && name != self.log_path.file_name().and_then(|n| n.to_str()).unwrap_or("") {
+                    if name.starts_with(&stem)
+                        && name
+                            != self
+                                .log_path
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("")
+                    {
                         stats.rotated_files += 1;
                     }
                 }

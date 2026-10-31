@@ -1,6 +1,6 @@
 use crate::error::Result;
-use crate::quarantine::{QuarantineStatus, QuarantineStats};
 use crate::quarantine::store::QuarantineStore;
+use crate::quarantine::{QuarantineStats, QuarantineStatus};
 
 pub struct QuarantineCleanup {
     store: QuarantineStore,
@@ -17,8 +17,7 @@ impl QuarantineCleanup {
 
     pub fn cleanup(&self) -> Result<CleanupResult> {
         let entries = self.store.list_entries()?;
-        let cutoff =
-            chrono::Utc::now() - chrono::Duration::days(self.max_age_days as i64);
+        let cutoff = chrono::Utc::now() - chrono::Duration::days(self.max_age_days as i64);
         let mut removed = 0u32;
         let mut skipped = 0u32;
 

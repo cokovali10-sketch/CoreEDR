@@ -1,6 +1,6 @@
-use axum::http::StatusCode;
 use axum::body::Body;
 use axum::http::Request;
+use axum::http::StatusCode;
 use tower::ServiceExt;
 
 #[tokio::test]
@@ -68,17 +68,17 @@ async fn test_correlation_overview_endpoint() {
 }
 
 fn create_test_app() -> axum::Router {
-    use crate::api::AppState;
+    use coreedr::api::AppState;
     use std::sync::Arc;
     use tokio::sync::RwLock;
 
-    let config = crate::config::Config::default_config();
-    let scanner = crate::scanner::Scanner::new(config.clone()).unwrap();
+    let config = coreedr::config::Config::default_config();
+    let scanner = coreedr::scanner::Scanner::new(config.clone()).unwrap();
 
     let state = AppState {
         scanner: Arc::new(RwLock::new(scanner)),
         config: Arc::new(RwLock::new(config)),
     };
 
-    crate::api::create_router(state)
+    coreedr::api::create_router(state)
 }

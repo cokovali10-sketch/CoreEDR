@@ -9,19 +9,20 @@ use crate::api::AppState;
 
 const API_KEY_HEADER: &str = "X-API-Key";
 
-pub fn create_auth_layer() -> ValidateRequestHeaderLayer<impl Fn(&mut Request<axum::body::Body>) -> bool + Clone> {
+pub fn create_auth_layer(
+) -> ValidateRequestHeaderLayer<impl Fn(&mut Request<axum::body::Body>) -> bool + Clone> {
     ValidateRequestHeaderLayer::custom(|request: &mut Request<axum::body::Body>| {
         let path = request.uri().path();
-        
+
         if path == "/api/health" {
             return true;
         }
-        
+
         let headers = request.headers();
         let api_key = headers
             .get(API_KEY_HEADER)
             .and_then(|value| value.to_str().ok());
-        
+
         match api_key {
             Some(key) => {
                 let expected_key = std::env::var("COREEDR_API_KEY")
@@ -38,21 +39,21 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Result<Response, StatusCode> {
     let path = request.uri().path();
-    
+
     if path == "/api/health" {
         return Ok(next.run(request).await);
     }
-    
+
     let api_key = request
         .headers()
         .get(API_KEY_HEADER)
         .and_then(|value| value.to_str().ok());
-    
+
     match api_key {
         Some(key) => {
-            let expected_key = std::env::var("COREEDR_API_KEY")
-                .unwrap_or_else(|_| "default-dev-key".to_string());
-            
+            let expected_key =
+                std::env::var("COREEDR_API_KEY").unwrap_or_else(|_| "default-dev-key".to_string());
+
             if key == expected_key {
                 Ok(next.run(request).await)
             } else {

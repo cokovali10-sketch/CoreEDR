@@ -1,6 +1,6 @@
-pub mod techniques;
 pub mod mapper;
 pub mod matrix;
+pub mod techniques;
 
 pub use mapper::MitreMapper;
 pub use matrix::MitreMatrix;

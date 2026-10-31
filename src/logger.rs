@@ -1,7 +1,7 @@
-use chrono::{DateTime, Utc, SecondsFormat};
+use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs::{File, OpenOptions};
-use std::io::{Write, BufWriter};
+use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -123,6 +123,7 @@ impl SecurityLogger {
         if let Ok(mut writer) = self.writer.lock() {
             if let Ok(json) = serde_json::to_string(event) {
                 let _ = writeln!(writer, "{}", json);
+                let _ = writer.flush();
             }
         }
     }
@@ -130,10 +131,12 @@ impl SecurityLogger {
     fn write_text(&self, event: &SecurityEvent) {
         if let Ok(mut writer) = self.writer.lock() {
             let timestamp = event.timestamp.to_rfc3339_opts(SecondsFormat::Secs, true);
-            let pid_str = event.process_pid
+            let pid_str = event
+                .process_pid
                 .map(|p| format!(" [PID:{}]", p))
                 .unwrap_or_default();
-            let score_str = event.risk_score
+            let score_str = event
+                .risk_score
                 .map(|s| format!(" score={}", s))
                 .unwrap_or_default();
 
@@ -152,6 +155,7 @@ impl SecurityLogger {
             if let Some(ref details) = event.details {
                 let _ = writeln!(writer, "  Details: {}", details);
             }
+            let _ = writer.flush();
         }
     }
 
@@ -160,7 +164,15 @@ impl SecurityLogger {
     }
 
     pub fn warning(&self, category: EventCategory, source: &str, message: &str) {
-        self.log(LogLevel::Warning, category, source, message, None, None, None);
+        self.log(
+            LogLevel::Warning,
+            category,
+            source,
+            message,
+            None,
+            None,
+            None,
+        );
     }
 
     pub fn error(&self, category: EventCategory, source: &str, message: &str) {
@@ -168,7 +180,15 @@ impl SecurityLogger {
     }
 
     pub fn critical(&self, category: EventCategory, source: &str, message: &str) {
-        self.log(LogLevel::Critical, category, source, message, None, None, None);
+        self.log(
+            LogLevel::Critical,
+            category,
+            source,
+            message,
+            None,
+            None,
+            None,
+        );
     }
 
     pub fn get_recent_events(&self, count: usize) -> Vec<SecurityEvent> {
@@ -181,7 +201,11 @@ impl SecurityLogger {
 
     pub fn get_events_by_level(&self, level: LogLevel) -> Vec<SecurityEvent> {
         if let Ok(events) = self.events.lock() {
-            events.iter().filter(|e| e.level == level).cloned().collect()
+            events
+                .iter()
+                .filter(|e| e.level == level)
+                .cloned()
+                .collect()
         } else {
             Vec::new()
         }
@@ -207,7 +231,7 @@ impl SecurityLogger {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct LoggerStats {
     pub total_events: u64,
     pub debug_count: u64,

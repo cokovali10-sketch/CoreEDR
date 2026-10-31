@@ -33,7 +33,9 @@ impl IntegrityChecker {
 
         let hash = compute_file_hash(&exe_path)?;
 
-        let mut hashes = self.known_hashes.lock()
+        let mut hashes = self
+            .known_hashes
+            .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
         hashes.insert(exe_path, hash);
 
@@ -50,7 +52,9 @@ impl IntegrityChecker {
 
         let current_hash = compute_file_hash(&exe_path)?;
 
-        let hashes = self.known_hashes.lock()
+        let hashes = self
+            .known_hashes
+            .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
 
         if let Some(stored_hash) = hashes.get(&exe_path) {
@@ -63,7 +67,9 @@ impl IntegrityChecker {
     pub fn verify_config_integrity(&self, path: &Path) -> Result<bool> {
         let current_hash = compute_file_hash(path)?;
 
-        let hashes = self.known_hashes.lock()
+        let hashes = self
+            .known_hashes
+            .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
 
         if let Some(stored_hash) = hashes.get(path) {
@@ -76,7 +82,9 @@ impl IntegrityChecker {
     pub fn store_config_hash(&self, path: &Path) -> Result<()> {
         let hash = compute_file_hash(path)?;
 
-        let mut hashes = self.known_hashes.lock()
+        let mut hashes = self
+            .known_hashes
+            .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
         hashes.insert(path.to_path_buf(), hash);
 
@@ -89,7 +97,9 @@ impl IntegrityChecker {
 
     pub fn detect_tamper(&self, path: &Path) -> Result<TamperResult> {
         let exists = path.exists();
-        let hashes = self.known_hashes.lock()
+        let hashes = self
+            .known_hashes
+            .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
 
         if !exists {
@@ -114,7 +124,9 @@ impl IntegrityChecker {
     }
 
     pub fn clear(&self) -> Result<()> {
-        let mut hashes = self.known_hashes.lock()
+        let mut hashes = self
+            .known_hashes
+            .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
         hashes.clear();
         Ok(())
@@ -148,8 +160,7 @@ pub enum TamperResult {
 }
 
 fn compute_file_hash(path: &Path) -> Result<String> {
-    let data = fs::read(path)
-        .map_err(|e| CoreError::Io(e))?;
+    let data = fs::read(path).map_err(|e| CoreError::Io(e))?;
 
     let mut hasher = Sha256::new();
     hasher.update(&data);

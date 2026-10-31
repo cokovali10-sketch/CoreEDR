@@ -1,6 +1,6 @@
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use std::fs::File;
-use std::io::{Read, BufReader};
+use std::io::{BufReader, Read};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -120,14 +120,21 @@ mod tests {
     fn test_hash_bytes() {
         let engine = HashEngine::new(7.5);
         let hash = engine.hash_bytes(b"hello world");
-        assert_eq!(hash, "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
+        assert_eq!(
+            hash,
+            "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+        );
     }
 
     #[test]
     fn test_known_malicious() {
         let engine = HashEngine::new(7.5);
-        let blacklist = vec!["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string()];
-        assert!(engine.is_known_malicious("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", &blacklist));
+        let blacklist =
+            vec!["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string()];
+        assert!(engine.is_known_malicious(
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            &blacklist
+        ));
         assert!(!engine.is_known_malicious("abc123", &blacklist));
     }
 

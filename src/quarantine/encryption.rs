@@ -61,9 +61,7 @@ pub fn decrypt_bytes(data: &[u8], password: &[u8]) -> Result<Vec<u8>> {
     }
 
     if &data[..MAGIC.len()] != MAGIC {
-        return Err(CoreError::Encryption(
-            "Invalid magic bytes".to_string(),
-        ));
+        return Err(CoreError::Encryption("Invalid magic bytes".to_string()));
     }
 
     let mut offset = MAGIC.len();
@@ -88,7 +86,11 @@ pub fn decrypt_bytes(data: &[u8], password: &[u8]) -> Result<Vec<u8>> {
     Ok(plaintext)
 }
 
-pub fn encrypt_file(input: &std::path::Path, output: &std::path::Path, password: &[u8]) -> Result<()> {
+pub fn encrypt_file(
+    input: &std::path::Path,
+    output: &std::path::Path,
+    password: &[u8],
+) -> Result<()> {
     let data = std::fs::read(input).map_err(|e| {
         CoreError::Encryption(format!(
             "Failed to read input file {}: {}",
@@ -110,7 +112,11 @@ pub fn encrypt_file(input: &std::path::Path, output: &std::path::Path, password:
     Ok(())
 }
 
-pub fn decrypt_file(input: &std::path::Path, output: &std::path::Path, password: &[u8]) -> Result<()> {
+pub fn decrypt_file(
+    input: &std::path::Path,
+    output: &std::path::Path,
+    password: &[u8],
+) -> Result<()> {
     let data = std::fs::read(input).map_err(|e| {
         CoreError::Encryption(format!(
             "Failed to read encrypted file {}: {}",

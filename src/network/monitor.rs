@@ -120,7 +120,8 @@ impl NetworkMonitor {
             events.extend(new_events.clone());
 
             if events.len() > self.max_events {
-                events.drain(0..events.len() - self.max_events);
+                let excess = events.len() - self.max_events;
+                events.drain(0..excess);
             }
         }
 

@@ -2,8 +2,8 @@ use std::collections::VecDeque;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use crate::error::{CoreError, Result};
 use super::BehavioralEvent;
+use crate::error::{CoreError, Result};
 
 pub struct EventStore {
     events: Mutex<VecDeque<TimestampedEvent>>,
@@ -28,7 +28,8 @@ impl EventStore {
     }
 
     pub fn add_event(&self, event: BehavioralEvent) -> Result<()> {
-        let mut events = self.events
+        let mut events = self
+            .events
             .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
 
@@ -45,7 +46,8 @@ impl EventStore {
     }
 
     pub fn get_events_in_window(&self, seconds: u64) -> Result<Vec<BehavioralEvent>> {
-        let events = self.events
+        let events = self
+            .events
             .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
 
@@ -59,7 +61,8 @@ impl EventStore {
     }
 
     pub fn get_events_for_pid(&self, pid: u32) -> Result<Vec<BehavioralEvent>> {
-        let events = self.events
+        let events = self
+            .events
             .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
 
@@ -76,7 +79,8 @@ impl EventStore {
         seconds: u64,
         pid: u32,
     ) -> Result<Vec<BehavioralEvent>> {
-        let events = self.events
+        let events = self
+            .events
             .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
 
@@ -90,7 +94,8 @@ impl EventStore {
     }
 
     pub fn clear(&self) -> Result<()> {
-        let mut events = self.events
+        let mut events = self
+            .events
             .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
         events.clear();
@@ -98,14 +103,16 @@ impl EventStore {
     }
 
     pub fn len(&self) -> Result<usize> {
-        let events = self.events
+        let events = self
+            .events
             .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
         Ok(events.len())
     }
 
     pub fn is_empty(&self) -> Result<bool> {
-        let events = self.events
+        let events = self
+            .events
             .lock()
             .map_err(|e| CoreError::Internal(format!("Lock poisoned: {e}")))?;
         Ok(events.is_empty())

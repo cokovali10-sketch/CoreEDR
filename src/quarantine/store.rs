@@ -57,11 +57,7 @@ impl QuarantineStore {
             .lock()
             .map_err(|e| CoreError::Quarantine(format!("Lock poisoned: {}", e)))?;
 
-        Ok(index
-            .entries
-            .iter()
-            .find(|e| e.id == id)
-            .cloned())
+        Ok(index.entries.iter().find(|e| e.id == id).cloned())
     }
 
     pub fn list_entries(&self) -> Result<Vec<QuarantineEntry>> {

@@ -1,4 +1,5 @@
 pub mod cleanup;
+#[cfg(feature = "quarantine-encrypt")]
 pub mod encryption;
 pub mod restore;
 pub mod store;

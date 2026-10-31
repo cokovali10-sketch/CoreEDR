@@ -17,6 +17,8 @@ fn make_result(name: &str, pid: u32, score: u32) -> AnalysisResult {
             start_time: chrono::Utc::now(),
             hash: None,
             risk_score: score,
+            chain_depth: 0,
+            root_pid: 1,
         },
         risk_score: score,
         severity: Severity::from_score(score),

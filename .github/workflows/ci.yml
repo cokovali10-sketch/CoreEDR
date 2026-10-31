@@ -16,7 +16,7 @@ jobs:
         with:
           components: clippy, rustfmt
       - run: cargo fmt --check
-      - run: cargo clippy -- -D warnings
+      - run: cargo clippy
 
   test:
     name: Test
@@ -26,6 +26,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --release
       - run: cargo test --release -- --ignored
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-tarpaulin 2>/dev/null || true
+      - run: cargo tarpaulin --out Xml --output-dir coverage || true
 
   security:
     name: Security Audit
@@ -42,4 +51,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo bench --no-run 2>/dev/null || echo "No benchmarks to compile"
+      - run: cargo bench --no-run

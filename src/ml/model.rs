@@ -3,9 +3,9 @@ use std::path::Path;
 use ndarray::{Array1, Array2};
 use serde::{Deserialize, Serialize};
 
-use crate::error::{CoreError, Result};
 use super::features::FeatureVector;
 use super::ThreatPrediction;
+use crate::error::{CoreError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatModel {
@@ -33,10 +33,12 @@ impl ThreatModel {
         let raw = features.to_array();
         let normalized = self.normalize(&raw);
 
-        let z: f64 = normalized.iter()
+        let z: f64 = normalized
+            .iter()
             .zip(self.weights.iter())
             .map(|(x, w)| x * w)
-            .sum::<f64>() + self.bias;
+            .sum::<f64>()
+            + self.bias;
 
         let probability = sigmoid(z);
         let is_malicious = probability >= self.threshold;
@@ -83,19 +85,22 @@ impl ThreatModel {
         raw.iter()
             .zip(self.feature_means.iter())
             .zip(self.feature_stds.iter())
-            .map(|((x, mean), std)| {
-                if *std > 1e-10 {
-                    (x - mean) / std
-                } else {
-                    0.0
-                }
-            })
+            .map(
+                |((x, mean), std)| {
+                    if *std > 1e-10 {
+                        (x - mean) / std
+                    } else {
+                        0.0
+                    }
+                },
+            )
             .collect()
     }
 
     pub fn to_feature_matrix(&self, features_list: &[FeatureVector]) -> Result<Array2<f64>> {
         let n = features_list.len();
-        let m = features_list.first()
+        let m = features_list
+            .first()
             .map(|f| f.to_array().len())
             .unwrap_or(0);
 
@@ -111,8 +116,7 @@ impl ThreatModel {
 
     pub fn to_feature_vector(&self, features: &FeatureVector) -> Result<Array1<f64>> {
         let normalized = self.normalize(&features.to_array());
-        Array1::from_vec(normalized)
-            .map_err(|e| CoreError::Ml(format!("Failed to create feature vector: {e}")))
+        Ok(Array1::from_vec(normalized))
     }
 }
 

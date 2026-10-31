@@ -1,6 +1,6 @@
+use crate::correlation::engine::{CorrelatedEvent, CorrelationStats, EventType, Severity};
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
-use crate::correlation::engine::{CorrelatedEvent, EventType, Severity, CorrelationStats};
 
 #[derive(Serialize)]
 pub struct CorrelationOverview {
@@ -43,9 +43,7 @@ pub async fn correlation_overview() -> Json<CorrelationOverview> {
     })
 }
 
-pub async fn add_correlated_event(
-    Json(payload): Json<AddEventRequest>,
-) -> Json<EventResponse> {
+pub async fn add_correlated_event(Json(payload): Json<AddEventRequest>) -> Json<EventResponse> {
     let event_type = match payload.event_type.as_str() {
         "process_creation" => EventType::ProcessCreation,
         "process_termination" => EventType::ProcessTermination,
@@ -61,7 +59,10 @@ pub async fn add_correlated_event(
         _ => EventType::Alert,
     };
 
-    let id = format!("evt-{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0));
+    let id = format!(
+        "evt-{}",
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+    );
 
     Json(EventResponse {
         id,

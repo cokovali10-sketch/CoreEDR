@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::engine::{CorrelatedEvent, EventType, Severity};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventTimeline {
@@ -39,39 +39,45 @@ pub struct ProcessGroup {
 
 impl EventTimeline {
     pub fn from_events(events: &[CorrelatedEvent]) -> Self {
-        let entries: Vec<TimelineEntry> = events.iter().map(|e| {
-            let mut tags = Vec::new();
+        let entries: Vec<TimelineEntry> = events
+            .iter()
+            .map(|e| {
+                let mut tags = Vec::new();
 
-            if e.process_name.is_some() {
-                tags.push("process".into());
-            }
-            match e.event_type {
-                EventType::NetworkConnection | EventType::NetworkListening => {
-                    tags.push("network".into());
+                if e.process_name.is_some() {
+                    tags.push("process".into());
                 }
-                EventType::FileAccess | EventType::FileCreation | EventType::FileModification | EventType::FileDeletion => {
-                    tags.push("file".into());
+                match e.event_type {
+                    EventType::NetworkConnection | EventType::NetworkListening => {
+                        tags.push("network".into());
+                    }
+                    EventType::FileAccess
+                    | EventType::FileCreation
+                    | EventType::FileModification
+                    | EventType::FileDeletion => {
+                        tags.push("file".into());
+                    }
+                    EventType::RegistryModification => {
+                        tags.push("registry".into());
+                    }
+                    _ => {}
                 }
-                EventType::RegistryModification => {
-                    tags.push("registry".into());
-                }
-                _ => {}
-            }
 
-            let summary = Self::generate_summary(e);
+                let summary = Self::generate_summary(e);
 
-            TimelineEntry {
-                id: e.id.clone(),
-                timestamp: e.timestamp.to_rfc3339(),
-                event_type: format!("{:?}", e.event_type),
-                summary,
-                severity: e.severity.clone(),
-                process_name: e.process_name.clone(),
-                process_id: e.process_id,
-                user: e.user.clone(),
-                tags,
-            }
-        }).collect();
+                TimelineEntry {
+                    id: e.id.clone(),
+                    timestamp: e.timestamp.to_rfc3339(),
+                    event_type: format!("{:?}", e.event_type),
+                    summary,
+                    severity: e.severity.clone(),
+                    process_name: e.process_name.clone(),
+                    process_id: e.process_id,
+                    user: e.user.clone(),
+                    tags,
+                }
+            })
+            .collect();
 
         let time_range = if entries.is_empty() {
             TimeRange {
@@ -80,10 +86,12 @@ impl EventTimeline {
                 duration_seconds: 0,
             }
         } else {
-            let start = entries.first()
+            let start = entries
+                .first()
                 .map(|e| e.timestamp.clone())
                 .unwrap_or_default();
-            let end = entries.last()
+            let end = entries
+                .last()
                 .map(|e| e.timestamp.clone())
                 .unwrap_or_default();
             let first_ts = chrono::DateTime::parse_from_rfc3339(&start)
@@ -122,24 +130,48 @@ impl EventTimeline {
                 format!("Process '{}' terminated", name)
             }
             EventType::FileCreation => {
-                let path = event.details.get("file_path").map(|s| s.as_str()).unwrap_or("unknown");
+                let path = event
+                    .details
+                    .get("file_path")
+                    .map(|s| s.as_str())
+                    .unwrap_or("unknown");
                 format!("File created: {}", path)
             }
             EventType::FileModification => {
-                let path = event.details.get("file_path").map(|s| s.as_str()).unwrap_or("unknown");
+                let path = event
+                    .details
+                    .get("file_path")
+                    .map(|s| s.as_str())
+                    .unwrap_or("unknown");
                 format!("File modified: {}", path)
             }
             EventType::FileAccess => {
-                let path = event.details.get("file_path").map(|s| s.as_str()).unwrap_or("unknown");
+                let path = event
+                    .details
+                    .get("file_path")
+                    .map(|s| s.as_str())
+                    .unwrap_or("unknown");
                 format!("File accessed: {}", path)
             }
             EventType::FileDeletion => {
-                let path = event.details.get("file_path").map(|s| s.as_str()).unwrap_or("unknown");
+                let path = event
+                    .details
+                    .get("file_path")
+                    .map(|s| s.as_str())
+                    .unwrap_or("unknown");
                 format!("File deleted: {}", path)
             }
             EventType::NetworkConnection => {
-                let ip = event.details.get("remote_ip").map(|s| s.as_str()).unwrap_or("unknown");
-                let port = event.details.get("remote_port").map(|s| s.as_str()).unwrap_or("?");
+                let ip = event
+                    .details
+                    .get("remote_ip")
+                    .map(|s| s.as_str())
+                    .unwrap_or("unknown");
+                let port = event
+                    .details
+                    .get("remote_port")
+                    .map(|s| s.as_str())
+                    .unwrap_or("?");
                 format!("Network connection to {}:{}", ip, port)
             }
             EventType::NetworkListening => {
@@ -147,26 +179,43 @@ impl EventTimeline {
                 format!("Listening on port {}", port)
             }
             EventType::RegistryModification => {
-                let key = event.details.get("registry_key").map(|s| s.as_str()).unwrap_or("unknown");
+                let key = event
+                    .details
+                    .get("registry_key")
+                    .map(|s| s.as_str())
+                    .unwrap_or("unknown");
                 format!("Registry modified: {}", key)
             }
             EventType::ServiceCreation => {
-                let name = event.details.get("service_name").map(|s| s.as_str()).unwrap_or("unknown");
+                let name = event
+                    .details
+                    .get("service_name")
+                    .map(|s| s.as_str())
+                    .unwrap_or("unknown");
                 format!("Service created: {}", name)
             }
             EventType::ScheduledTask => {
-                let name = event.details.get("task_name").map(|s| s.as_str()).unwrap_or("unknown");
+                let name = event
+                    .details
+                    .get("task_name")
+                    .map(|s| s.as_str())
+                    .unwrap_or("unknown");
                 format!("Scheduled task created: {}", name)
             }
             EventType::Alert => {
-                let msg = event.details.get("message").map(|s| s.as_str()).unwrap_or("Alert triggered");
+                let msg = event
+                    .details
+                    .get("message")
+                    .map(|s| s.as_str())
+                    .unwrap_or("Alert triggered");
                 format!("Alert: {}", msg)
             }
         }
     }
 
     fn group_by_process(events: &[CorrelatedEvent]) -> Vec<ProcessGroup> {
-        let mut groups: std::collections::HashMap<u32, Vec<&CorrelatedEvent>> = std::collections::HashMap::new();
+        let mut groups: std::collections::HashMap<u32, Vec<&CorrelatedEvent>> =
+            std::collections::HashMap::new();
 
         for event in events {
             if let Some(pid) = event.process_id {
@@ -174,35 +223,39 @@ impl EventTimeline {
             }
         }
 
-        groups.into_iter().map(|(pid, proc_events)| {
-            let name = proc_events.first()
-                .and_then(|e| e.process_name.clone())
-                .unwrap_or_else(|| "unknown".into());
-            let user = proc_events.first()
-                .and_then(|e| e.user.clone());
+        groups
+            .into_iter()
+            .map(|(pid, proc_events)| {
+                let name = proc_events
+                    .first()
+                    .and_then(|e| e.process_name.clone())
+                    .unwrap_or_else(|| "unknown".into());
+                let user = proc_events.first().and_then(|e| e.user.clone());
 
-            let entries: Vec<TimelineEntry> = proc_events.iter().map(|e| {
-                TimelineEntry {
-                    id: e.id.clone(),
-                    timestamp: e.timestamp.to_rfc3339(),
-                    event_type: format!("{:?}", e.event_type),
-                    summary: Self::generate_summary(e),
-                    severity: e.severity.clone(),
-                    process_name: e.process_name.clone(),
-                    process_id: e.process_id,
-                    user: e.user.clone(),
-                    tags: Vec::new(),
+                let entries: Vec<TimelineEntry> = proc_events
+                    .iter()
+                    .map(|e| TimelineEntry {
+                        id: e.id.clone(),
+                        timestamp: e.timestamp.to_rfc3339(),
+                        event_type: format!("{:?}", e.event_type),
+                        summary: Self::generate_summary(e),
+                        severity: e.severity.clone(),
+                        process_name: e.process_name.clone(),
+                        process_id: e.process_id,
+                        user: e.user.clone(),
+                        tags: Vec::new(),
+                    })
+                    .collect();
+
+                ProcessGroup {
+                    pid,
+                    name,
+                    user,
+                    events: entries,
+                    children: Vec::new(),
                 }
-            }).collect();
-
-            ProcessGroup {
-                pid,
-                name,
-                user,
-                events: entries,
-                children: Vec::new(),
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     pub fn to_json(&self) -> String {

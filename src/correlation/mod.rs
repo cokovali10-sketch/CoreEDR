@@ -1,7 +1,7 @@
-pub mod engine;
 pub mod chain;
+pub mod engine;
 pub mod timeline;
 
+pub use chain::{AttackChain, ChainLink, ChainNode};
 pub use engine::CorrelationEngine;
-pub use chain::{AttackChain, ChainNode, ChainLink};
 pub use timeline::EventTimeline;

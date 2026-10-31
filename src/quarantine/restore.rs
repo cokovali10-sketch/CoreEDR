@@ -1,7 +1,8 @@
 use crate::error::{CoreError, Result};
 use crate::hash_engine::HashEngine;
-use crate::quarantine::{QuarantineEntry, QuarantineStatus};
 use crate::quarantine::store::QuarantineStore;
+use crate::quarantine::{QuarantineEntry, QuarantineStatus};
+#[cfg(feature = "yara")]
 use crate::yara::YaraManager;
 
 pub struct QuarantineRestore {
@@ -28,7 +29,10 @@ impl QuarantineRestore {
             .get_entry(id)?
             .ok_or_else(|| CoreError::Quarantine(format!("Entry {} not found", id)))?;
 
-        if matches!(entry.status, QuarantineStatus::Restored | QuarantineStatus::Deleted) {
+        if matches!(
+            entry.status,
+            QuarantineStatus::Restored | QuarantineStatus::Deleted
+        ) {
             return Err(CoreError::Quarantine(format!(
                 "Entry {} has already been {}",
                 id,
@@ -50,7 +54,16 @@ impl QuarantineRestore {
             }
 
             if entry.encrypted {
-                super::encryption::decrypt_file(&quarantine_file, restore_path, password)?;
+                #[cfg(feature = "quarantine-encrypt")]
+                {
+                    super::encryption::decrypt_file(&quarantine_file, restore_path, password)?;
+                }
+                #[cfg(not(feature = "quarantine-encrypt"))]
+                {
+                    return Err(CoreError::Quarantine(
+                        "Encryption feature not enabled".to_string(),
+                    ));
+                }
             } else {
                 std::fs::copy(&quarantine_file, restore_path)?;
             }
@@ -63,7 +76,8 @@ impl QuarantineRestore {
 
         if let Some(ref expected_hash) = entry.hash {
             let hash_engine = HashEngine::new(7.5);
-            let hash_result = hash_engine.hash_file(restore_path)
+            let hash_result = hash_engine
+                .hash_file(restore_path)
                 .map_err(|e| CoreError::Quarantine(format!("Hash verification failed: {}", e)))?;
 
             if hash_result.sha256 != *expected_hash {
@@ -75,12 +89,14 @@ impl QuarantineRestore {
             }
         }
 
+        #[cfg(feature = "yara")]
         if self.scan_before_restore {
             let yara_manager = YaraManager::new();
             let matches = yara_manager.scan_file(restore_path)?;
             if !matches.is_empty() {
                 std::fs::remove_file(restore_path).ok();
-                let threat_names: Vec<String> = matches.iter().map(|m| m.rule_name.clone()).collect();
+                let threat_names: Vec<String> =
+                    matches.iter().map(|m| m.rule_name.clone()).collect();
                 return Err(CoreError::Quarantine(format!(
                     "Restore aborted: file still matches YARA rules: {}",
                     threat_names.join(", ")
@@ -88,8 +104,11 @@ impl QuarantineRestore {
             }
         }
 
-        self.store
-            .update_status(id, QuarantineStatus::Restored, Some("Restored by user".to_string()))?;
+        self.store.update_status(
+            id,
+            QuarantineStatus::Restored,
+            Some("Restored by user".to_string()),
+        )?;
 
         let mut restored_entry = entry.clone();
         restored_entry.status = QuarantineStatus::Restored;
@@ -115,8 +134,10 @@ impl QuarantineRestore {
         }
 
         if !errors.is_empty() {
-            let error_msgs: Vec<String> =
-                errors.iter().map(|(id, e)| format!("{}: {}", id, e)).collect();
+            let error_msgs: Vec<String> = errors
+                .iter()
+                .map(|(id, e)| format!("{}: {}", id, e))
+                .collect();
             eprintln!("Some restorations failed: {}", error_msgs.join("; "));
         }
 

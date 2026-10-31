@@ -1,12 +1,11 @@
-use crate::error::Result;
-use super::BehavioralEvent;
 use super::alerts::BehavioralAlert;
 use super::event_store::EventStore;
 use super::rules::{
-    BehavioralRule, CredentialAccessPattern, OfficeAppNetworkSpawn,
-    PowerShellDownloadExec, PersistenceCreation, RapidFileModification,
-    SuspiciousProcessChain,
+    BehavioralRule, CredentialAccessPattern, OfficeAppNetworkSpawn, PersistenceCreation,
+    PowerShellDownloadExec, RapidFileModification, SuspiciousProcessChain,
 };
+use super::BehavioralEvent;
+use crate::error::Result;
 
 pub struct BehavioralAnalyzer {
     event_store: EventStore,
@@ -72,8 +71,11 @@ impl BehavioralAnalyzer {
         }
 
         alerts.sort_by(|a, b| {
-            b.severity().numeric().cmp(&a.severity().numeric())
-                .then(b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal))
+            b.severity.numeric().cmp(&a.severity.numeric()).then(
+                b.confidence
+                    .partial_cmp(&a.confidence)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+            )
         });
 
         let alerts = self.deduplicate_alerts(alerts);
@@ -86,7 +88,9 @@ impl BehavioralAnalyzer {
     }
 
     pub fn analyze_for_pid(&self, pid: u32) -> Result<Vec<BehavioralAlert>> {
-        let events = self.event_store.get_events_in_window_for_pid(self.window_seconds, pid)?;
+        let events = self
+            .event_store
+            .get_events_in_window_for_pid(self.window_seconds, pid)?;
         self.analyze_events(&events)
     }
 
@@ -104,10 +108,13 @@ impl BehavioralAnalyzer {
 
     fn deduplicate_alerts(&self, mut alerts: Vec<BehavioralAlert>) -> Vec<BehavioralAlert> {
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
-        alerts.drain(..).filter(|a| {
-            let key = format!("{}:{}", a.rule_name, a.description);
-            seen.insert(key)
-        }).collect()
+        alerts
+            .drain(..)
+            .filter(|a| {
+                let key = format!("{}:{}", a.rule_name, a.description);
+                seen.insert(key)
+            })
+            .collect()
     }
 
     pub fn compute_threat_score(&self, alerts: &[BehavioralAlert]) -> f64 {
@@ -115,8 +122,9 @@ impl BehavioralAnalyzer {
             return 0.0;
         }
 
-        let total: f64 = alerts.iter()
-            .map(|a| a.severity().numeric() as f64 * a.confidence)
+        let total: f64 = alerts
+            .iter()
+            .map(|a| a.severity.numeric() as f64 * a.confidence)
             .sum();
 
         let max_possible = alerts.len() as f64 * 5.0;

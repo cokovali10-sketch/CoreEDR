@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::error::Result;
 use super::features::FeatureVector;
 use super::model::ThreatModel;
 use super::ThreatPrediction;
+use crate::error::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScorerWeights {

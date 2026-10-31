@@ -28,6 +28,8 @@ fn make_process(name: &str, pid: u32, memory: u64, cpu: f64, cmd: &str) -> Proce
         start_time: chrono::Utc::now(),
         hash: None,
         risk_score: 0,
+        chain_depth: 0,
+        root_pid: 1,
     }
 }
 
@@ -125,6 +127,8 @@ fn test_hidden_process_detection() {
         start_time: chrono::Utc::now(),
         hash: None,
         risk_score: 0,
+        chain_depth: 0,
+        root_pid: 1,
     };
     let result = engine.analyze(&proc);
 
@@ -151,6 +155,8 @@ fn test_empty_path_suspicious() {
         start_time: chrono::Utc::now(),
         hash: None,
         risk_score: 0,
+        chain_depth: 0,
+        root_pid: 1,
     };
     let result = engine.analyze(&proc);
 

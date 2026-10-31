@@ -17,23 +17,29 @@ pub mod logging;
 pub mod platform;
 
 // Phase 4: File system monitoring
+#[cfg(feature = "file-monitoring")]
 pub mod monitoring;
 
 // Phase 5: Network monitoring
+#[cfg(feature = "network-monitoring")]
 pub mod network;
 
 // Phase 6: YARA integration
+#[cfg(feature = "yara")]
 pub mod yara;
 
 // Phase 7: Encrypted quarantine (extends quarantine module)
 
 // Phase 8: Behavioral analysis
+#[cfg(feature = "behavioral-analysis")]
 pub mod behavioral;
 
 // Phase 9: ML threat classification
+#[cfg(feature = "ml")]
 pub mod ml;
 
 // Phase 10: Tamper protection
+#[cfg(feature = "tamper-protection")]
 pub mod tamper;
 
 // Phase 11: MITRE ATT&CK mapping

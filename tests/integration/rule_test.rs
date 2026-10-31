@@ -27,6 +27,8 @@ fn make_test_process(name: &str) -> ProcessInfo {
         start_time: chrono::Utc::now(),
         hash: None,
         risk_score: 0,
+        chain_depth: 0,
+        root_pid: 1,
     }
 }
 

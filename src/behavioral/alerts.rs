@@ -51,7 +51,7 @@ pub struct BehavioralAlert {
     pub recommended_action: String,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct AlertStats {
     pub total_alerts: u64,
     pub by_severity: HashMap<String, u64>,
@@ -65,13 +65,12 @@ impl AlertStats {
     pub fn record(&mut self, alert: &BehavioralAlert) {
         self.total_alerts += 1;
 
-        *self.by_severity
+        *self
+            .by_severity
             .entry(alert.severity.to_string())
             .or_insert(0) += 1;
 
-        *self.by_rule
-            .entry(alert.rule_name.clone())
-            .or_insert(0) += 1;
+        *self.by_rule.entry(alert.rule_name.clone()).or_insert(0) += 1;
 
         self.confidence_sum += alert.confidence;
         self.confidence_count += 1;
