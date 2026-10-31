@@ -89,7 +89,11 @@ fn test_quarantine_restore_nonexistent() {
 
 #[test]
 fn test_kill_action() {
-    let (mut engine, _tmp) = make_quarantine_engine();
+    let tmp = tempfile::tempdir().unwrap();
+    let qpath = tmp.path().join("quarantine");
+    std::fs::create_dir_all(&qpath).unwrap();
+    let mut engine = ContainmentEngine::new(qpath, false, true, 60);
+    let _tmp = tmp;
     let log_path = _tmp.path().join("test.log");
     let logger = SecurityLogger::new(&log_path, false).unwrap();
 

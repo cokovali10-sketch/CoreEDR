@@ -91,7 +91,7 @@ fn test_alert_severity_filter() {
 
     manager.process_analysis(&make_result("high_proc", 1, 80), &logger);
     manager.process_analysis(&make_result("med_proc", 2, 50), &logger);
-    manager.process_analysis(&make_result("high_proc2", 3, 85), &logger);
+    manager.process_analysis(&make_result("high_proc2", 3, 75), &logger);
 
     let high_alerts = manager.get_alerts_by_severity(&Severity::High);
     assert_eq!(high_alerts.len(), 2, "Should have 2 High severity alerts");
