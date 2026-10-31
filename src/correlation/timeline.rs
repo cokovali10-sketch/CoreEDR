@@ -258,7 +258,19 @@ impl EventTimeline {
             .collect()
     }
 
+
     pub fn to_json(&self) -> String {
         serde_json::to_string_pretty(self).unwrap_or_default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_timeline_from_empty() {
+        let tl = EventTimeline::from_events(&[]);
+        assert!(tl.events.is_empty());
     }
 }

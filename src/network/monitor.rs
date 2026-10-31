@@ -66,6 +66,7 @@ impl NetworkMonitor {
         self.is_running
     }
 
+
     pub fn scan_once(&mut self) -> Result<Vec<NetworkEvent>> {
         let current_connections = self.get_connections_from_os()?;
         let mut new_events = Vec::new();
@@ -188,5 +189,18 @@ impl NetworkMonitor {
     #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
     fn get_connections_from_os(&self) -> Result<Vec<Connection>> {
         Ok(Vec::new())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_monitor_new() {
+        let m = NetworkMonitor::new();
+        assert!(!m.is_running());
+        assert!(m.get_connections().is_empty());
+        assert!(m.get_events().is_empty());
     }
 }

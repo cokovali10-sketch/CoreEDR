@@ -94,6 +94,7 @@ impl MitreMatrix {
             .collect()
     }
 
+
     pub fn get_uncovored_tactics(&self) -> Vec<String> {
         self.tactics
             .iter()
@@ -112,5 +113,23 @@ impl MitreMatrix {
 impl Default for MitreMatrix {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_matrix_new() {
+        let m = MitreMatrix::new();
+        assert!(m.total_techniques > 0);
+        assert!(!m.tactics.is_empty());
+    }
+
+    #[test]
+    fn test_coverage_zero_initially() {
+        let m = MitreMatrix::new();
+        assert_eq!(m.get_coverage_percentage(), 0.0);
     }
 }

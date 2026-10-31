@@ -170,6 +170,7 @@ pub fn save_model(model: &ThreatModel, path: &Path) -> Result<()> {
     model.save_model(path)
 }
 
+
 pub fn load_model(path: &Path) -> Result<ThreatModel> {
     ThreatModel::load_model(path)
 }
@@ -226,5 +227,17 @@ fn sigmoid(x: f64) -> f64 {
     } else {
         let ex = x.exp();
         ex / (1.0 + ex)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_train_model_empty() {
+        let data: Vec<(FeatureVector, bool)> = vec![];
+        let model = train_model(&data);
+        assert!(model.is_err());
     }
 }

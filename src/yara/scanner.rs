@@ -44,6 +44,7 @@ impl YaraManager {
         Ok(matches)
     }
 
+
     pub fn scan_file(&self, path: &Path) -> Result<Vec<YaraMatch>> {
         let data = std::fs::read(path).map_err(|e| {
             CoreError::Yara(format!(
@@ -195,4 +196,16 @@ fn read_process_memory(pid: u32) -> Result<Vec<u8>> {
         "Process memory scanning not supported on this platform for PID {}",
         pid
     )))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_scan_bytes_empty_rules() {
+        let m = YaraManager::new();
+        let r = m.scan_bytes(b"hello").unwrap();
+        assert!(r.is_empty());
+    }
 }

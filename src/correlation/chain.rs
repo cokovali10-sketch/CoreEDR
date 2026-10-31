@@ -168,6 +168,7 @@ impl ChainBuilder {
     }
 }
 
+
 pub fn build_chain_from_events(events: &[CorrelatedEvent], chain_id: &str) -> Option<AttackChain> {
     if events.is_empty() {
         return None;
@@ -230,4 +231,16 @@ pub fn build_chain_from_events(events: &[CorrelatedEvent], chain_id: &str) -> Op
     }
 
     Some(builder.build())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_chain_builder_basic() {
+        let chain = ChainBuilder::new("c1").name("Chain").build();
+        assert_eq!(chain.id, "c1");
+        assert_eq!(chain.name, "Chain");
+    }
 }
