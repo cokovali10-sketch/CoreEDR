@@ -1,7 +1,11 @@
-use coreedr::config::{Config, GeneralConfig, MonitoringConfig, DetectionConfig, ResponseConfig, LoggingConfig, RulesConfig};
+use coreedr::config::{
+    Config, DetectionConfig, GeneralConfig, LoggingConfig, MonitoringConfig, ResponseConfig,
+    RulesConfig,
+};
 use std::path::PathBuf;
 
-pub const EICAR_TEST_STRING: &str = r#"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"#;
+pub const EICAR_TEST_STRING: &str =
+    r#"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"#;
 
 pub fn create_temp_dir(prefix: &str) -> PathBuf {
     let dir = tempfile::tempdir().unwrap();

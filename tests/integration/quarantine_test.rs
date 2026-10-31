@@ -1,6 +1,6 @@
 use coreedr::containment::ContainmentEngine;
-use coreedr::logger::{SecurityLogger, EventCategory};
 use coreedr::heuristic_engine::Action;
+use coreedr::logger::{EventCategory, SecurityLogger};
 use std::fs;
 
 fn make_quarantine_engine() -> (ContainmentEngine, tempfile::TempDir) {
@@ -17,20 +17,21 @@ fn test_quarantine_add_and_list() {
     let log_path = _tmp.path().join("test.log");
     let logger = SecurityLogger::new(&log_path, false).unwrap();
 
-    let action = engine.execute_action(
-        9999,
-        "test_process",
-        Action::Quarantine,
-        &logger,
-    );
+    let action = engine.execute_action(9999, "test_process", Action::Quarantine, &logger);
 
     assert!(
-        matches!(action.result, coreedr::containment::ContainmentResult::Success),
+        matches!(
+            action.result,
+            coreedr::containment::ContainmentResult::Success
+        ),
         "Quarantine action should succeed"
     );
 
     let list = engine.get_quarantine_list();
-    assert!(!list.is_empty(), "Quarantine list should have at least one entry");
+    assert!(
+        !list.is_empty(),
+        "Quarantine list should have at least one entry"
+    );
     assert!(
         list.iter().any(|f| f.contains("test_process")),
         "Quarantine list should contain our test process"
@@ -41,7 +42,10 @@ fn test_quarantine_add_and_list() {
 fn test_quarantine_list_empty() {
     let (engine, _tmp) = make_quarantine_engine();
     let list = engine.get_quarantine_list();
-    assert!(list.is_empty(), "Fresh quarantine directory should be empty");
+    assert!(
+        list.is_empty(),
+        "Fresh quarantine directory should be empty"
+    );
 }
 
 #[test]
@@ -73,7 +77,10 @@ fn test_quarantine_restore() {
     assert!(result.is_ok(), "Restore should succeed");
 
     let list = engine.get_quarantine_list();
-    assert!(list.is_empty(), "Restored file should be removed from quarantine");
+    assert!(
+        list.is_empty(),
+        "Restored file should be removed from quarantine"
+    );
 }
 
 #[test]

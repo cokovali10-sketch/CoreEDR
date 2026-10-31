@@ -1,4 +1,4 @@
-use coreedr::correlation::chain::{ChainBuilder, ChainNode, ChainLink, build_chain_from_events};
+use coreedr::correlation::chain::{build_chain_from_events, ChainBuilder, ChainLink, ChainNode};
 use coreedr::correlation::engine::{CorrelatedEvent, EventType, Severity};
 use std::collections::HashMap;
 

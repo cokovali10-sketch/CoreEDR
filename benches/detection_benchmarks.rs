@@ -1,10 +1,10 @@
-use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use coreedr::config::DetectionConfig;
+use coreedr::correlation::engine::{CorrelatedEvent, CorrelationEngine, EventType, Severity};
 use coreedr::heuristic_engine::HeuristicEngine;
-use coreedr::mitre::mapper::{MitreMapper, DetectionEvent};
-use coreedr::correlation::engine::{CorrelationEngine, CorrelatedEvent, EventType, Severity};
+use coreedr::mitre::mapper::{DetectionEvent, MitreMapper};
 use coreedr::process_monitor::ProcessInfo;
 use coreedr::yara::YaraManager;
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -53,7 +53,10 @@ fn bench_mitre_mapper(c: &mut Criterion) {
     let mut group = c.benchmark_group("mitre_mapper");
 
     let mut details = HashMap::new();
-    details.insert("CommandLine".to_string(), "powershell -encodedcommand".to_string());
+    details.insert(
+        "CommandLine".to_string(),
+        "powershell -encodedcommand".to_string(),
+    );
 
     let event = DetectionEvent {
         event_type: "process_creation".to_string(),

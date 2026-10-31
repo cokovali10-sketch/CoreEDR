@@ -51,8 +51,14 @@ fn test_config_serialization() {
     assert!(deserialized.is_ok(), "Deserialization should succeed");
 
     let deserialized = deserialized.unwrap();
-    assert_eq!(deserialized.general.scan_interval_ms, config.general.scan_interval_ms);
-    assert_eq!(deserialized.detection.enable_heuristic, config.detection.enable_heuristic);
+    assert_eq!(
+        deserialized.general.scan_interval_ms,
+        config.general.scan_interval_ms
+    );
+    assert_eq!(
+        deserialized.detection.enable_heuristic,
+        config.detection.enable_heuristic
+    );
 }
 
 #[test]
@@ -71,7 +77,10 @@ fn test_config_custom_paths() {
     let json = serde_json::to_string(&config).unwrap();
     let loaded: Config = serde_json::from_str(&json).unwrap();
 
-    assert_eq!(loaded.general.quarantine_path, tmp.path().join("custom_quarantine"));
+    assert_eq!(
+        loaded.general.quarantine_path,
+        tmp.path().join("custom_quarantine")
+    );
     assert_eq!(loaded.logging.log_path, tmp.path().join("custom.log"));
 }
 

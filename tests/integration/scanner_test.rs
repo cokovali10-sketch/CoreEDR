@@ -95,7 +95,10 @@ fn test_scan_report_structure() {
 
     assert_eq!(report.scan_number, 1);
     assert!(report.timestamp.timestamp() > 0);
-    assert!(report.duration_ms < 60000, "Scan should complete within 60s");
+    assert!(
+        report.duration_ms < 60000,
+        "Scan should complete within 60s"
+    );
     assert!(!report.threat_summary.critical > 1000);
     assert!(report.logger_stats.total_events > 0);
 }

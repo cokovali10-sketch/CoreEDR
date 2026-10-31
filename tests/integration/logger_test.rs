@@ -1,4 +1,4 @@
-use coreedr::logger::{SecurityLogger, EventCategory, LogLevel};
+use coreedr::logger::{EventCategory, LogLevel, SecurityLogger};
 
 #[test]
 fn test_logger_creation() {
@@ -36,9 +36,18 @@ fn test_json_format() {
     logger.info(EventCategory::System, "test", "JSON test event");
 
     let content = std::fs::read_to_string(&log_path).unwrap();
-    assert!(content.contains("\"level\":\"Info\""), "JSON log should contain level field");
-    assert!(content.contains("\"category\":\"System\""), "JSON log should contain category field");
-    assert!(content.contains("JSON test event"), "JSON log should contain message");
+    assert!(
+        content.contains("\"level\":\"Info\""),
+        "JSON log should contain level field"
+    );
+    assert!(
+        content.contains("\"category\":\"System\""),
+        "JSON log should contain category field"
+    );
+    assert!(
+        content.contains("JSON test event"),
+        "JSON log should contain message"
+    );
 }
 
 #[test]
@@ -50,8 +59,14 @@ fn test_text_format() {
     logger.info(EventCategory::System, "test", "Text test event");
 
     let content = std::fs::read_to_string(&log_path).unwrap();
-    assert!(content.contains("INFO"), "Text log should contain INFO level");
-    assert!(content.contains("Text test event"), "Text log should contain message");
+    assert!(
+        content.contains("INFO"),
+        "Text log should contain INFO level"
+    );
+    assert!(
+        content.contains("Text test event"),
+        "Text log should contain message"
+    );
 }
 
 #[test]
@@ -66,7 +81,10 @@ fn test_recent_events() {
 
     let recent = logger.get_recent_events(5);
     assert_eq!(recent.len(), 5);
-    assert_eq!(recent[0].message, "Event 9", "Most recent event should be last written");
+    assert_eq!(
+        recent[0].message, "Event 9",
+        "Most recent event should be last written"
+    );
 }
 
 #[test]

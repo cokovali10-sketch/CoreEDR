@@ -1,5 +1,5 @@
 use coreedr::network::monitor::NetworkMonitor;
-use coreedr::network::rules::{NetworkRuleEngine, NetworkRuleConfig};
+use coreedr::network::rules::{NetworkRuleConfig, NetworkRuleEngine};
 use std::net::IpAddr;
 
 #[test]

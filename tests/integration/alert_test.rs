@@ -1,6 +1,6 @@
 use coreedr::alert::AlertManager;
-use coreedr::heuristic_engine::{AnalysisResult, Severity, Action};
-use coreedr::logger::{SecurityLogger, EventCategory};
+use coreedr::heuristic_engine::{Action, AnalysisResult, Severity};
+use coreedr::logger::{EventCategory, SecurityLogger};
 use coreedr::process_monitor::ProcessInfo;
 
 fn make_result(name: &str, pid: u32, score: u32) -> AnalysisResult {
@@ -42,7 +42,10 @@ fn test_alert_generation() {
     let result = make_result("mimikatz", 1234, 85);
 
     let alert = manager.process_analysis(&result, &logger);
-    assert!(alert.is_some(), "High-risk process should generate an alert");
+    assert!(
+        alert.is_some(),
+        "High-risk process should generate an alert"
+    );
 
     let alert = alert.unwrap();
     assert_eq!(alert.process_name, "mimikatz");
@@ -62,7 +65,10 @@ fn test_alert_cooldown() {
     assert!(alert1.is_some(), "First alert should be generated");
 
     let alert2 = manager.process_analysis(&result, &logger);
-    assert!(alert2.is_none(), "Second alert should be suppressed by cooldown");
+    assert!(
+        alert2.is_none(),
+        "Second alert should be suppressed by cooldown"
+    );
 }
 
 #[test]
@@ -75,10 +81,16 @@ fn test_alert_acknowledgment() {
     assert!(!alert.acknowledged);
 
     let ack_result = manager.acknowledge(&alert.id);
-    assert!(ack_result, "Acknowledge should return true for valid alert id");
+    assert!(
+        ack_result,
+        "Acknowledge should return true for valid alert id"
+    );
 
     let alerts = manager.get_all_alerts();
-    assert!(alerts[0].acknowledged, "Alert should be marked acknowledged");
+    assert!(
+        alerts[0].acknowledged,
+        "Alert should be marked acknowledged"
+    );
 
     let active = manager.get_active_alerts();
     assert!(active.is_empty(), "No active alerts after acknowledgment");
@@ -133,7 +145,11 @@ fn test_max_alerts_limit() {
     manager.process_analysis(&make_result("p2", 2, 75), &logger);
     manager.process_analysis(&make_result("p3", 3, 80), &logger);
 
-    assert_eq!(manager.get_all_alerts().len(), 2, "Should cap at max_alerts");
+    assert_eq!(
+        manager.get_all_alerts().len(),
+        2,
+        "Should cap at max_alerts"
+    );
 }
 
 #[test]
@@ -141,9 +157,14 @@ fn test_clear_acknowledged() {
     let (logger, _tmp) = make_logger();
     let mut manager = AlertManager::new(100, 0);
 
-    let alert = manager.process_analysis(&make_result("ack_test", 1, 70), &logger).unwrap();
+    let alert = manager
+        .process_analysis(&make_result("ack_test", 1, 70), &logger)
+        .unwrap();
     manager.acknowledge(&alert.id);
     manager.clear_acknowledged();
 
-    assert!(manager.get_all_alerts().is_empty(), "Acknowledged alerts should be cleared");
+    assert!(
+        manager.get_all_alerts().is_empty(),
+        "Acknowledged alerts should be cleared"
+    );
 }

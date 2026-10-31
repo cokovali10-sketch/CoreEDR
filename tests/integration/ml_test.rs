@@ -1,4 +1,4 @@
-use coreedr::ml::features::{FeatureVector, extract_features_from_bytes};
+use coreedr::ml::features::{extract_features_from_bytes, FeatureVector};
 
 #[test]
 fn test_feature_vector_to_array() {

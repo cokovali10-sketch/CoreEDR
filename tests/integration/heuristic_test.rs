@@ -1,5 +1,5 @@
 use coreedr::config::DetectionConfig;
-use coreedr::heuristic_engine::{HeuristicEngine, Severity, Action};
+use coreedr::heuristic_engine::{Action, HeuristicEngine, Severity};
 use coreedr::process_monitor::ProcessInfo;
 use std::path::PathBuf;
 
@@ -37,16 +37,29 @@ fn make_process(name: &str, pid: u32, memory: u64, cpu: f64, cmd: &str) -> Proce
 fn test_suspicious_process_detected() {
     let config = make_detection_config();
     let mut engine = HeuristicEngine::new(config);
-    let proc = make_process("mimikatz", 1234, 50000, 45.0, "mimikatz sekurlsa::logonpasswords");
+    let proc = make_process(
+        "mimikatz",
+        1234,
+        50000,
+        45.0,
+        "mimikatz sekurlsa::logonpasswords",
+    );
     let result = engine.analyze(&proc);
 
-    assert!(result.risk_score >= 40, "mimikatz should have high risk score, got {}", result.risk_score);
+    assert!(
+        result.risk_score >= 40,
+        "mimikatz should have high risk score, got {}",
+        result.risk_score
+    );
     assert!(
         matches!(result.severity, Severity::High | Severity::Critical),
         "mimikatz severity should be High or Critical, got {:?}",
         result.severity
     );
-    assert!(!result.indicators.is_empty(), "mimikatz should produce indicators");
+    assert!(
+        !result.indicators.is_empty(),
+        "mimikatz should produce indicators"
+    );
 }
 
 #[test]
@@ -56,7 +69,11 @@ fn test_clean_process_low_score() {
     let proc = make_process("bash", 100, 5000, 2.0, "bash --login");
     let result = engine.analyze(&proc);
 
-    assert!(result.risk_score < 30, "bash should have low risk score, got {}", result.risk_score);
+    assert!(
+        result.risk_score < 30,
+        "bash should have low risk score, got {}",
+        result.risk_score
+    );
     assert!(
         matches!(result.severity, Severity::Info | Severity::Low),
         "bash severity should be Info or Low, got {:?}",
@@ -94,7 +111,10 @@ fn test_batch_analysis() {
 
     let summary = engine.get_threat_summary(&results);
     assert_eq!(summary.total, 3);
-    assert!(summary.total_indicators > 0, "Batch analysis should find indicators");
+    assert!(
+        summary.total_indicators > 0,
+        "Batch analysis should find indicators"
+    );
 }
 
 #[test]

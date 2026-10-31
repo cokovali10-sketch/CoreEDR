@@ -1,7 +1,7 @@
 use coreedr::config::RulesConfig;
-use coreedr::rule_engine::{RuleEngine, Rule, RuleCondition};
-use coreedr::heuristic_engine::{AnalysisResult, Severity, Action};
+use coreedr::heuristic_engine::{Action, AnalysisResult, Severity};
 use coreedr::process_monitor::ProcessInfo;
+use coreedr::rule_engine::{Rule, RuleCondition, RuleEngine};
 
 fn make_rules_config() -> RulesConfig {
     RulesConfig {
@@ -50,7 +50,10 @@ fn test_rule_engine_creation() {
     assert!(engine.is_ok(), "RuleEngine should create successfully");
 
     let engine = engine.unwrap();
-    assert!(!engine.get_rules().is_empty(), "Engine should have built-in rules");
+    assert!(
+        !engine.get_rules().is_empty(),
+        "Engine should have built-in rules"
+    );
 }
 
 #[test]
@@ -62,7 +65,10 @@ fn test_blacklist_detection() {
 
     engine.check_process(&proc, &mut result);
 
-    assert_eq!(result.risk_score, 100, "Blacklisted process should score 100");
+    assert_eq!(
+        result.risk_score, 100,
+        "Blacklisted process should score 100"
+    );
     assert_eq!(result.severity, Severity::Critical);
     assert!(!result.indicators.is_empty());
 }
@@ -76,7 +82,10 @@ fn test_whitelist_bypass() {
 
     engine.check_process(&proc, &mut result);
 
-    assert_eq!(result.risk_score, 0, "Whitelisted process should not be flagged");
+    assert_eq!(
+        result.risk_score, 0,
+        "Whitelisted process should not be flagged"
+    );
     assert!(result.indicators.is_empty());
 }
 
@@ -106,7 +115,10 @@ fn test_custom_rule_add() {
         "Custom rule should flag suspicious_tool"
     );
     assert!(
-        result.indicators.iter().any(|i| i.indicator_type == "rule_match"),
+        result
+            .indicators
+            .iter()
+            .any(|i| i.indicator_type == "rule_match"),
         "Should have rule_match indicator"
     );
 }
@@ -131,7 +143,10 @@ fn test_rule_disable() {
     let mut result = make_result(&proc);
     engine.check_process(&proc, &mut result);
 
-    assert_eq!(result.risk_score, 0, "Disabled rule should not affect score");
+    assert_eq!(
+        result.risk_score, 0,
+        "Disabled rule should not affect score"
+    );
 }
 
 #[test]
@@ -151,7 +166,10 @@ fn test_rule_remove() {
     assert_eq!(engine.get_rules().len(), initial_count + 1);
     assert!(engine.remove_rule("temp_rule"));
     assert_eq!(engine.get_rules().len(), initial_count);
-    assert!(!engine.remove_rule("temp_rule"), "Removing nonexistent rule should return false");
+    assert!(
+        !engine.remove_rule("temp_rule"),
+        "Removing nonexistent rule should return false"
+    );
 }
 
 #[test]
