@@ -1,4 +1,5 @@
 use crate::error::{CoreError, Result};
+use std::io::Seek;
 use std::path::Path;
 
 use super::{rules::tag_to_severity, YaraManager, YaraMatch};
@@ -43,7 +44,6 @@ impl YaraManager {
 
         Ok(matches)
     }
-
 
     pub fn scan_file(&self, path: &Path) -> Result<Vec<YaraMatch>> {
         let data = std::fs::read(path).map_err(|e| {

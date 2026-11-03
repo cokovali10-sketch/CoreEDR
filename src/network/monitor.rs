@@ -66,7 +66,6 @@ impl NetworkMonitor {
         self.is_running
     }
 
-
     pub fn scan_once(&mut self) -> Result<Vec<NetworkEvent>> {
         let current_connections = self.get_connections_from_os()?;
         let mut new_events = Vec::new();

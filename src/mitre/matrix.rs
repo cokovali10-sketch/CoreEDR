@@ -94,7 +94,6 @@ impl MitreMatrix {
             .collect()
     }
 
-
     pub fn get_uncovored_tactics(&self) -> Vec<String> {
         self.tactics
             .iter()

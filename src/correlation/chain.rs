@@ -168,7 +168,6 @@ impl ChainBuilder {
     }
 }
 
-
 pub fn build_chain_from_events(events: &[CorrelatedEvent], chain_id: &str) -> Option<AttackChain> {
     if events.is_empty() {
         return None;

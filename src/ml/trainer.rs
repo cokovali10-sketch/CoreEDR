@@ -170,7 +170,6 @@ pub fn save_model(model: &ThreatModel, path: &Path) -> Result<()> {
     model.save_model(path)
 }
 
-
 pub fn load_model(path: &Path) -> Result<ThreatModel> {
     ThreatModel::load_model(path)
 }
